@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication()}" onPostback="false"/>
+    <o:viewAction actionListener="#{viewMain.fetch()}" onPostback="false" if="#{sessionAccount.fetchAccepted}"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['calculations']}</ui:define>
+<ui:define name="centerAuthed">
+<p:outputPanel id="datePickerOutputPanelId">
+<h:form>
+    <p:datePicker id="datePickerId" value="#{viewMain.newAvailableDate}"
+                  monthNavigator="true" readonlyInput="true" weekCalculator="true"
+                  placeholder="#{l10n['date']}" size="10" pattern="dd.MM.yyyy"
+                  showButtonBar="true"
+                  disabled="#{viewMain.observationWrapper.observation}"/>
+    <p:commandButton id="createCalcBtn" value="#{l10n['calc.create']}"
+                     process="@this datePickerId"
+                     actionListener="#{viewMain.createCalc()}"
+                     update="datePickerId createCalcMsgs"
+                     icon="pi pi-file-edit" style="margin-left:5px;"
+                     disabled="#{viewMain.observationWrapper.observation}"/>
+    <p:messages id="createCalcMsgs" for="datePickerId" showDetail="true" skipDetailIfEqualsSummary="true"/>
+    <p:blockUI block="datePickerOutputPanelId cartesianOutputPanelId repeatOutputPanelId" trigger="createCalcBtn"/>
+</h:form>
+</p:outputPanel>
+<p:outputPanel id="cartesianOutputPanelId">
+<p:lineChart model="#{viewMain.cartesianLinerModel}"
+             style="width:100%;max-height:300px;"
+             rendered="#{viewMain.cartesianLinerModel != null}"/>
+</p:outputPanel>
+<p:outputPanel id="repeatOutputPanelId">
+<h:form>
+<p:dataList id="dataListId" type="none" value="#{viewMain.availableDatesLazyModel}" var="availableDate"
+            lazy="true"
+            paginator="true" rows="15"
+            rowsPerPageTemplate="15,30,50"
+            currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+            paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+            rendered="#{viewMain.availableDatesLazyModel.rowCount > 0}">
+<p:outputPanel id="datesRangeCartesianOutputPanelId" rendered="#{viewMain.availableDatesLazyModel.rowIndex == 0}">
+<p:lineChart model="#{viewMain.datesRangeCartesianLinerModel}"
+             style="width:100%;max-height:300px;"
+             rendered="#{viewMain.datesRangeCartesianLinerModel != null}"/>
+</p:outputPanel>
+<p:panelGrid id="panelGridInDataListId" columns="1" style="margin-top:10px;">
+    <f:facet name="header">
+        <h:outputText value="#{availableDate}" style="font-weight:normal;">
+            <f:convertDateTime type="localDate" pattern="dd.MM.yyyy"/>
+        </h:outputText>
+    </f:facet>
+    <h:panelGroup layout="block" style="margin-top:5px;margin-bottom:5px;">
+        <p:dataTable id="cpDataTableInDataListId" value="#{viewMain.getVarsByDate(availableDate).consumedProducts}"
+                 var="cp"
+                 selection="#{viewMain.getVarsByDate(availableDate).selectedConsumedProduct}"
+                 selectionMode="single"
+                 disabledSelection="#{viewMain.observationWrapper.observation}"
+                 rowKey="#{cp.consumed_id}"
+                 rowStyleClass="#{cp.store_id == null ? 'rightAlignTotal' : 'rightAlign'}">
+            <f:facet name="header">
+                <h:outputText value="#{l10n['products']}" style="font-weight:normal;"/>
+            </f:facet>
+            <p:ajax event="rowSelect"
+                    listener="#{viewMain.onConsumedSelect(availableDate)}" resetValues="true"
+                    update="@parent:@parent:selectOneStoreIdInDataListId,
+                            @parent:@parent:panelGroupProductIdInDataListId,
+                            @parent:@parent:panelGroupConsumedGramIdInDataListId"
+                    disabled="#{viewMain.observationWrapper.observation}"/>
+            <p:columnGroup type="header">
+                <p:row>
+                    <p:column rowspan="2" />
+                    <p:column rowspan="2" />
+                    <p:column rowspan="2" colspan="4" headerText="#{l10n['bju.and.kkal.per.100gr']}"/>
+                    <p:column rowspan="2" />
+                    <p:column colspan="5" headerText="#{l10n['consumed']}"/>
+                </p:row>
+                <p:row>
+                    <p:column />
+                    <p:column colspan="4" headerText="#{l10n['total']}"/>
+                </p:row>
+                <p:row>
+                    <p:column headerText="#{l10n['store']}" width="125"/>
+                    <p:column headerText="#{l10n['product']}" width="250"/>
+                    <p:column width="70">
+                        <f:facet name="header">
+                            <h:outputText value="#{l10n['b']}"/><br/>
+                            <h:outputText value="#{l10n['kkal']}"/>
+                        </f:facet>
+                    </p:column>
+                    <p:column width="70">
+                        <f:facet name="header">
+                            <h:outputText value="#{l10n['j']}"/><br/>
+                            <h:outputText value="#{l10n['kkal']}"/>
+                        </f:facet>
+                    </p:column>
+                    <p:column width="70">
+                        <f:facet name="header">
+                            <h:outputText value="#{l10n['u']}"/><br/>
+                            <h:outputText value="#{l10n['kkal']}"/>
+                        </f:facet>
+                    </p:column>
+                    <p:column headerText="#{l10n['kkal']}" width="70"/>
+                    <p:column headerText="#{l10n['gr.in.portion']}" width="60"/>
+                    <p:column headerText="#{l10n['gr']}" width="60"/>
+                    <p:column width="70">
+                        <f:facet name="header">
+                            <h:outputText value="#{l10n['b']}"/><br/>
+                            <h:outputText value="#{l10n['kkal']}"/>
+                        </f:facet>
+                    </p:column>
+                    <p:column width="70">
+                        <f:facet name="header">
+                            <h:outputText value="#{l10n['j']}"/><br/>
+                            <h:outputText value="#{l10n['kkal']}"/>
+                        </f:facet>
+                    </p:column>
+                    <p:column width="70">
+                        <f:facet name="header">
+                            <h:outputText value="#{l10n['u']}"/><br/>
+                            <h:outputText value="#{l10n['kkal']}"/>
+                        </f:facet>
+                    </p:column>
+                    <p:column headerText="#{l10n['kkal']}" width="70"/>
+                </p:row>
+            </p:columnGroup>
+            <p:column style="text-align:#{cp.store_id != null ? 'left' : 'center'};"
+                      colspan="#{cp.store_id != null ? '1' : '2'}"
+                      groupRow="true" selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{viewMain.storeById.get(cp.store_id).title}"
+                              rendered="#{cp.store_id != null}"/> <!-- default store name -->
+                <h:outputText value="#{l10n['sum']}" rendered="#{cp.store_id == null}"/>
+            </p:column>
+            <p:column style="text-align:left;white-space:pre-wrap;" rendered="#{cp.product_id != null}"> <!-- default product name -->
+                <h:outputText value="#{cp.title}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.PBju.b}"/><br/>
+                <h:outputText value="#{cp.PBju.b_to_kkal}"
+                              rendered="#{cp.PBju.b != cp.PBju.b_to_kkal}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.PBju.j}"/><br/>
+                <h:outputText value="#{cp.PBju.j_to_kkal}"
+                              rendered="#{cp.PBju.j != cp.PBju.j_to_kkal}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.PBju.u}"/><br/>
+                <h:outputText value="#{cp.PBju.u_to_kkal}"
+                              rendered="#{cp.PBju.u != cp.PBju.u_to_kkal}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.PBju.kkal}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.portion_gram}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.consumed_gram}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.consumedBju.b}"/><br/>
+                <h:outputText value="#{cp.consumedBju.b_to_kkal}"
+                              rendered="#{cp.consumedBju.b != cp.consumedBju.b_to_kkal}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.consumedBju.j}"/><br/>
+                <h:outputText value="#{cp.consumedBju.j_to_kkal}"
+                              rendered="#{cp.consumedBju.j != cp.consumedBju.j_to_kkal}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <h:outputText value="#{cp.consumedBju.u}"/><br/>
+                <h:outputText value="#{cp.consumedBju.u_to_kkal}"
+                              rendered="#{cp.consumedBju.u != cp.consumedBju.u_to_kkal}"/>
+            </p:column>
+            <p:column selectRow="#{cp.product_id != null}">
+                <ui:fragment rendered="#{cp.consumed_id != null}">
+                    <h:outputText value="#{cp.consumedBju.kkal}"/>
+                </ui:fragment>
+                <ui:fragment rendered="#{cp.consumed_id == null}">
+                    <h:outputText value="~#{cp.consumedBju.kkal.longValue()}"/>
+                </ui:fragment>
+            </p:column>
+        </p:dataTable>
+        <p:selectOneMenu id="selectOneStoreIdInDataListId" value="#{viewMain.getVarsByDate(availableDate).selectedStoreId}"
+                         style="margin-top:10px;"
+                         dynamic="true" height="600" autoWidth="true"
+                         disabled="#{viewMain.observationWrapper.observation}">
+            <p:ajax event="valueChange"
+                    listener="#{viewMain.onStoreSelect(availableDate)}" resetValues="true"
+update="@this cpDataTableInDataListId panelGroupProductIdInDataListId panelGroupConsumedGramIdInDataListId" />
+            <f:selectItem itemLabel="#{l10n['add']}" noSelectionOption="true" itemDisabled="true" />
+            <f:selectItems value="#{viewMain.storeById.values()}"
+                           var="st"
+                           itemValue="#{st.id}" itemLabel="#{st.title}"/>
+            <f:facet name="footer">
+                <h:outputText value="#{dependentUtil.declensionValuedL10N(viewMain.storeById.size(),'store')}"/>
+            </f:facet>
+        </p:selectOneMenu>
+        <h:panelGroup id="panelGroupProductIdInDataListId" layout="block">
+            <p:selectOneMenu id="selectOneProductIdInDataListId" value="#{viewMain.getVarsByDate(availableDate).selectedProductId}"
+                             dynamic="true" height="500" autoWidth="true"
+                             rendered="#{not empty viewMain.getVarsByDate(availableDate).selectedStoreId}">
+                <p:ajax event="valueChange"
+                        listener="#{viewMain.onProductSelect(availableDate)}" resetValues="true"
+update="@this cpDataTableInDataListId panelGroupConsumedGramIdInDataListId"/>
+                <f:selectItem itemLabel="#{l10n['calc.choose.product']}" noSelectionOption="true" itemDisabled="true"/>
+                <f:selectItems value="#{viewMain.storeProductMapByStoreId.get(viewMain.getVarsByDate(availableDate).selectedStoreId).values()}"
+                               var="spc"
+                               itemValue="#{spc.product_id}"
+                               itemLabel="#{dependentUtil.msgFromBundle('product.info',
+                               spc.title,spc.PBju.b,spc.PBju.j,spc.PBju.u,spc.PBju.kkal,spc.portion_gram,dependentUtil.declensionValuedL10N(spc.consumed_count,'times'))}"/>
+                <f:facet name="footer">
+                    <h:outputText value="#{dependentUtil.msgFromBundle('target.from.source',  dependentUtil.declensionValuedL10N(viewMain.storeProductMapByStoreId.get(viewMain.getVarsByDate(availableDate).selectedStoreId).size(),'product'), viewMain.storeById.get(viewMain.getVarsByDate(availableDate).selectedStoreId).title)}#{viewMain.buildConsumedCount(availableDate)}"/>
+                </f:facet>
+            </p:selectOneMenu>
+        </h:panelGroup>
+        <h:panelGroup id="panelGroupConsumedGramIdInDataListId" layout="block" style="margin-top:10px;">
+            <ui:fragment rendered="#{not empty viewMain.getVarsByDate(availableDate).selectedProductId}">
+                <p:inputNumber id="inputConsumedGramId"
+                               value="#{viewMain.getVarsByDate(availableDate).newConsumedGram}"
+                               placeholder="1-9999"
+                               title="#{l10n['count.consumed.gram']} 1-9999"
+                               minValue="1" maxValue="9999" decimalPlaces="0" required="true" size="4"
+                               decimalSeparator="." decimalSeparatorAlternative="," thousandSeparator=""
+                               onkeypress="if(event.keyCode == 13){return false;}"/>
+                <p:commandButton id="incConsumedGramId"
+                                 process="@this"
+                                 actionListener="#{viewMain.incOrDecNewConsumedGram(availableDate, false)}" resetValues="true"
+                                 update="inputConsumedGramId"
+                                 icon="pi pi-minus" style="margin-left:35px;"/>
+                <p:commandButton id="decConsumedGramId"
+                                 process="@this"
+                                 actionListener="#{viewMain.incOrDecNewConsumedGram(availableDate, true)}" resetValues="true"
+                                 update="inputConsumedGramId"
+                                 icon="pi pi-plus" style="margin-left:35px;"/>
+                <p:commandButton id="updateConsumedBtnInDataListId"
+                                 value="#{viewMain.findExistedConsumedProduct(availableDate).isEmpty()
+                                 ? l10n['insert'] : l10n['set']} #{l10n['gr']}"
+                                 process="@this inputConsumedGramId"
+                                 actionListener="#{viewMain.insertOrUpdateNewConsumedGram(availableDate)}"
+                                 update="panelGridInDataListId"
+                                 icon="pi pi-check-square" style="margin-left:35px;"/>
+                <p:commandButton id="deleteConsumedBtnInDataListId"
+                                 value="#{l10n['delete']}"
+                                 process="@this"
+                                 actionListener="#{viewMain.deleteConsumedGram(availableDate)}"
+                                 update="panelGridInDataListId"
+                                 icon="pi pi-times" style="margin-left:5px;"
+                                 disabled="#{viewMain.findExistedConsumedProduct(availableDate).isEmpty()}">
+                    <p:confirm type="popup" header="#{l10n['confirm.delete.record']}" icon="pi pi-exclamation-triangle"
+                               message="#{dependentUtil.msgFromBundle('sure.delete.record', viewMain.storeProductMapByStoreId.get(viewMain.getVarsByDate(availableDate).selectedStoreId).get(viewMain.getVarsByDate(availableDate).selectedProductId).title)}"/>
+                </p:commandButton>
+            </ui:fragment>
+        </h:panelGroup>
+    </h:panelGroup>
+    <h:panelGroup layout="block" style="margin-top:5px;margin-bottom:5px;">
+    <p:dataTable id="limitsDataTableIdInDataListId" value="#{viewMain.getVarsByDate(availableDate).weightLimitations}"
+                 var="wl"
+                 rowStyleClass="rightAlign" style="margin-bottom:10px;">
+        <p:columnGroup type="header">
+            <p:row>
+                <p:column rowspan="3" headerText="#{l10n['weight']}"/>
+                <p:column colspan="10" headerText="#{l10n['limitations']}"/>
+            </p:row>
+            <p:row>
+                <p:column rowspan="2"/>
+                <p:column colspan="9" headerText="#{l10n['bju.grams.and.kkal']}"/>
+            </p:row>
+            <p:row>
+                <p:column colspan="3" headerText="#{l10n['recommended']}"/>
+                <p:column colspan="3" headerText="#{l10n['calculated']}"/>
+                <p:column colspan="3" headerText="#{l10n['calc.limitations']}"/>
+            </p:row>
+            <p:row>
+                <p:column headerText="#{l10n['kg']}" width="45"/>
+                <p:column headerText="#{l10n['title']}" width="120"/>
+                <p:column width="70">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['b']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="70">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['j']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="70">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['u']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="70">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['b.mul.kg']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="70">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['j.mul.kg']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="70">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['u.mul.kg']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="90">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['b']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="90">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['j']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+                <p:column width="90">
+                    <f:facet name="header">
+                        <h:outputText value="#{l10n['u']}"/><br/>
+                        <h:outputText value="#{l10n['kkal']}"/>
+                    </f:facet>
+                </p:column>
+            </p:row>
+        </p:columnGroup>
+        <p:column groupRow="true">
+            <h:outputText value="#{wl.kilogram}"/>
+        </p:column>
+        <p:column style="text-align:left;white-space:pre-wrap;">
+            <h:outputText value="#{wl.title}"/>
+        </p:column>
+        <p:column>
+            <h:outputText value="#{wl.LBju.b}"/><br/>
+            <h:outputText value="#{wl.LBju.b_to_kkal}" rendered="#{wl.LBju.b != wl.LBju.b_to_kkal}"/>
+        </p:column>
+        <p:column>
+            <h:outputText value="#{wl.LBju.j}"/><br/>
+            <h:outputText value="#{wl.LBju.j_to_kkal}" rendered="#{wl.LBju.j != wl.LBju.j_to_kkal}"/>
+        </p:column>
+        <p:column>
+            <h:outputText value="#{wl.LBju.u}"/><br/>
+            <h:outputText value="#{wl.LBju.u_to_kkal}" rendered="#{wl.LBju.u != wl.LBju.u_to_kkal}"/>
+        </p:column>
+        <p:column>
+            <h:outputText value="#{wl.maxBju.b}"/><br/>
+            <h:outputText value="#{wl.maxBju.b_to_kkal}" rendered="#{wl.maxBju.b != wl.maxBju.b_to_kkal}"/>
+        </p:column>
+        <p:column>
+            <h:outputText value="#{wl.maxBju.j}"/><br/>
+            <h:outputText value="#{wl.maxBju.j_to_kkal}" rendered="#{wl.maxBju.j != wl.maxBju.j_to_kkal}"/>
+        </p:column>
+        <p:column>
+            <h:outputText value="#{wl.maxBju.u}"/><br/>
+            <h:outputText value="#{wl.maxBju.u_to_kkal}" rendered="#{wl.maxBju.u != wl.maxBju.u_to_kkal}"/>
+        </p:column>
+        <p:column>
+            <p:columnGroup>
+                <ui:fragment rendered="#{wl.resultBju.b != null}">
+                    <h:outputLabel id="labB" value="#{viewMain.buildMsgEmojiDiff(wl.resultBju.b)}"
+                                   style="font-weight:bold;"/>
+                    <p:tooltip for="labB"
+                               value="#{viewMain.buildMsgLimitDiff(wl.resultBju.b, wl.resultBju.b_to_kkal)}"
+                               escape="false"/>
+                    <h:outputText value=" #{wl.resultBju.b}"/><br/>
+                    <h:outputText value="#{wl.resultBju.b_to_kkal}"/>
+                </ui:fragment>
+            </p:columnGroup>
+        </p:column>
+        <p:column>
+            <p:columnGroup>
+                <ui:fragment rendered="#{wl.resultBju.j != null}">
+                    <h:outputLabel id="labJ" value="#{viewMain.buildMsgEmojiDiff(wl.resultBju.j)}"
+                                   style="font-weight:bold;"/>
+                    <p:tooltip for="labJ"
+                               value="#{viewMain.buildMsgLimitDiff(wl.resultBju.j, wl.resultBju.j_to_kkal)}"
+                               escape="false"/>
+                    <h:outputText value=" #{wl.resultBju.j}"/><br/>
+                    <h:outputText value="#{wl.resultBju.j_to_kkal}"/>
+                </ui:fragment>
+            </p:columnGroup>
+        </p:column>
+        <p:column>
+            <p:columnGroup>
+                <ui:fragment rendered="#{wl.resultBju.u != null}">
+                    <h:outputLabel id="labU" value="#{viewMain.buildMsgEmojiDiff(wl.resultBju.u)}"
+                                   style="font-weight:bold;"/>
+                    <p:tooltip for="labU"
+                               value="#{viewMain.buildMsgLimitDiff(wl.resultBju.u, wl.resultBju.u_to_kkal)}"
+                               escape="false"/>
+                    <h:outputText value=" #{wl.resultBju.u}"/><br/>
+                    <h:outputText value="#{wl.resultBju.u_to_kkal}"/>
+                </ui:fragment>
+            </p:columnGroup>
+        </p:column>
+    </p:dataTable>
+    <p:inputNumber id="inputNewWeightId" value="#{viewMain.getVarsByDate(availableDate).weight}"
+                   title="#{l10n['weight']} 1.0-999.9"
+                   minValue="1.0" maxValue="999.9" decimalPlaces="1" required="true" size="4"
+                   decimalSeparator="." decimalSeparatorAlternative="," thousandSeparator=""
+                   disabled="#{viewMain.observationWrapper.observation}"
+                   onkeypress="if(event.keyCode == 13){return false;}"/>
+    <p:commandButton id="updateWeightBtnInDataListId" value="#{l10n['set.weight']}"
+                     process="@this inputNewWeightId"
+actionListener="#{viewMain.insertOrUpdateNewWeight(availableDate, component.parent.parent.parent)}"
+update="panelGridInDataListId"
+                     icon="pi pi-check-square" style="margin-left:5px;"
+                     disabled="#{viewMain.observationWrapper.observation}"/>
+    </h:panelGroup>
+</p:panelGrid>
+<p:blockUI block="cartesianOutputPanelId panelGridInDataListId"
+trigger="cpDataTableInDataListId,selectOneStoreIdInDataListId,selectOneProductIdInDataListId,
+updateConsumedBtnInDataListId,deleteConsumedBtnInDataListId,updateWeightBtnInDataListId"/>
+</p:dataList>
+<p:blockUI block="repeatOutputPanelId" trigger="dataListId"/>
+</h:form>
+</p:outputPanel>
+<ui:include src="../template/confirmBtns.xhtml"/>
+</ui:define>
+</ui:composition>
+</html>

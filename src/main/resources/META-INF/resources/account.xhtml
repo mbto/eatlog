@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <o:viewAction actionListener="#{requestLoginGoogle.onInvokeApplication()}" onPostback="false"/>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false)}" onPostback="false"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['account']}</ui:define>
+<ui:define name="centerForAll">
+<ui:fragment rendered="#{sessionAccount.authed}">
+    <p:panelGrid id="panelGridId" style="margin:0 auto;" styleClass="ui-panelgrid-blank">
+        <p:row>
+            <p:column colspan="2">
+                <ui:fragment rendered="#{sessionAccount.internalAccount.isBanned}">
+                    <p:graphicImage value="#{resource['static/images/banned.jpg']}"
+                                    style="display:block;margin:0 auto;"/>
+                </ui:fragment>
+                <ui:fragment rendered="#{!sessionAccount.internalAccount.isBanned}">
+                    <p:graphicImage srcset="#{sessionAccount.internalAccount.googlePictureUrl}"
+                                    style="display:block;margin:0 auto;"
+                                    rendered="#{not empty sessionAccount.internalAccount.googlePictureUrl}"/>
+                    <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
+                                    style="display:block;margin:0 auto;"
+                                    rendered="#{empty sessionAccount.internalAccount.googlePictureUrl}"/>
+                </ui:fragment>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column style="width:160px;">
+                <h:outputLabel value="#{l10n['date.registration']}"/>
+            </p:column>
+            <p:column style="width:280px;">
+                <h:outputText value="#{sessionAccount.internalAccount.createdAt}">
+                    <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+                </h:outputText><br/>
+                <h:outputText value="#{dependentUtil.humanLifetime(sessionAccount.internalAccount.createdAt)}">
+                    <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+                </h:outputText>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <h:outputLabel value="#{l10n['auth.previous.date']}"/>
+            </p:column>
+            <p:column>
+                <h:outputText value="#{sessionAccount.internalAccount.lastauthAt}">
+                    <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+                </h:outputText><br/>
+                <h:outputText value="#{dependentUtil.humanLifetime(sessionAccount.internalAccount.lastauthAt)}">
+                    <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+                </h:outputText>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <h:outputLabel value="#{l10n['name']}"/>
+            </p:column>
+            <p:column>
+                <h:outputText value="#{sessionAccount.internalAccount.name}" rendered="#{sessionAccount.internalAccount.isBanned}"/>
+                <h:form id="nameFormId" rendered="#{!sessionAccount.internalAccount.isBanned}">
+                    <p:inplace id="nameInplaceId" editor="true">
+                        <p:ajax event="save"
+                                listener="#{sessionAccount.updateName()}"
+                                update="@form msgs siteVisitorsOutputPanelId"/>
+                        <f:facet name="output">
+                            <i class="pi pi-cog"/>
+                            <h:outputText value=" #{sessionAccount.internalAccount.name}"/>
+                        </f:facet>
+                        <f:facet name="input">
+                            <p:inputText id="inNameId" value="#{sessionAccount.internalAccount.name}" required="true" maxlength="32"
+                                         requiredMessage="#{l10n['insert.name']}"
+                                         onkeypress="if(event.keyCode == 13){return false;}"/>
+                        </f:facet>
+                    </p:inplace>
+                </h:form>
+            </p:column>
+        </p:row>
+        <p:row rendered="#{sessionAccount.geonameId != null}">
+            <p:column>
+                <h:outputLabel value="#{l10n['location']}"/>
+            </p:column>
+            <p:column>
+                <h:outputText value="#{cacheService.allocateGeoInfoByGeonameId(sessionAccount.geonameId)
+                .buildLocationRaw(sessionAccount.locale, '&lt;br/&gt;', true)}"
+                escape="false"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <h:outputLabel value="#{l10n['roles']}"/>
+            </p:column>
+            <p:column>
+                <ui:fragment rendered="#{!sessionAccount.internalAccount.calcedRoles.owner}">
+                <h:outputText value="#{l10n['no']}"
+                              rendered="#{empty sessionAccount.internalAccount.roles}"/>
+                <h:form prependId="false">
+                <p:selectManyCheckbox value="#{sessionAccount.internalAccount.roles}"
+                                      layout="pageDirection" disabled="true"
+                                      rendered="#{not empty sessionAccount.internalAccount.roles}">
+                    <f:selectItems value="#{sessionAccount.internalAccount.roles}"
+                                   var="roleName"
+                                   itemValue="#{roleName}" itemLabel="#{roleName}"
+                                   itemDisabled="true"/>
+                </p:selectManyCheckbox>
+                </h:form>
+                </ui:fragment>
+                <h:form id="rolesFormId" rendered="#{sessionAccount.internalAccount.calcedRoles.owner}">
+                    <p:inplace id="rolesInplaceId" editor="true" disabled="#{sessionAccount.internalAccount.isBanned}">
+                        <p:ajax event="save" listener="#{sessionAccount.updateRoles()}" update="@form msgs" />
+                        <f:facet name="output">
+<!--                        <i class="pi pi-cog"/>-->
+                            <p:selectManyCheckbox value="#{sessionAccount.internalAccount.roles}"
+                                                  layout="pageDirection" disabled="true">
+                                <f:selectItems value="#{dependentUtil.mergeAllRoleNamesWithOthers(sessionAccount.internalAccount.roles)}"
+                                               var="roleName"
+                                               itemValue="#{roleName}" itemLabel="#{roleName}"
+                                               itemDisabled="true"/>
+                            </p:selectManyCheckbox>
+                        </f:facet>
+                        <f:facet name="input">
+                            <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum" allSuffix="ALL_ENUM_VALUES"/>
+                            <p:selectManyCheckbox value="#{sessionAccount.internalAccount.roles}"
+                                                  layout="pageDirection">
+                                <f:selectItems value="#{dependentUtil.mergeAllRoleNamesWithOthers(sessionAccount.internalAccount.roles)}"
+                                               var="roleName"
+                                               itemValue="#{roleName}" itemLabel="#{roleName}"
+                                               itemDisabled="#{roleName.equals(RoleEnum.OWNER.roleName)}"/>
+                            </p:selectManyCheckbox>
+                        </f:facet>
+                    </p:inplace>
+                </h:form>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <h:outputLabel value="#{l10n['banned']}"/>
+            </p:column>
+            <p:column>
+                <h:outputText value="#{sessionAccount.internalAccount.isBanned ? l10n['yes'] : l10n['no']}"/>
+            </p:column>
+        </p:row>
+        <p:row rendered="#{sessionAccount.internalAccount.isBanned and not empty sessionAccount.internalAccount.bannedReason}">
+            <p:column>
+                <h:outputLabel value="#{l10n['banned.reason']}"/>
+            </p:column>
+            <p:column>
+                <h:outputText value="#{sessionAccount.internalAccount.bannedReason}" style="white-space:pre-wrap;"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column colspan="2" style="text-align:center;">
+                <p:button href="/account?logout" value="#{l10n['logout']}" icon="pi pi-sign-out" />
+            </p:column>
+        </p:row>
+    </p:panelGrid>
+    <p:blockUI block="panelGridId" trigger="nameFormId:nameInplaceId rolesFormId:rolesInplaceId"/>
+</ui:fragment>
+<ui:fragment rendered="#{!sessionAccount.authed}">
+    <h:form id="loginBtnsFormId">
+    <p:panelGrid id="loginBtnsPanelGridId" columns="1" style="margin:0 auto;text-align:center;" styleClass="ui-panelgrid-blank ui-fluid">
+        <p:commandButton value="test acc1 login without google"
+actionListener="#{sessionAccount.attachAccount(
+accountService.findOrCreateAccount('108555958097693113620',sessionAccount.locale.toString(),sessionAccount.geonameId))}"
+                         action="/account.xhtml?faces-redirect=true"
+                         process="@this" update="@this msgs"
+                         onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()"
+                         style="text-align:left;" icon="pi pi-google"
+                         disabled="#{sessionAccount.internalAccount.isBanned}"
+                         rendered="#{applicationHolder.devEnvironment}"/>
+        <p:commandButton value="test acc2 login without google"
+actionListener="#{sessionAccount.attachAccount(
+accountService.findOrCreateAccount('12345',sessionAccount.locale.toString(),sessionAccount.geonameId))}"
+                         action="/account?faces-redirect=true"
+                         process="@this" update="@this msgs"
+                         onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()"
+                         style="text-align:left;" icon="pi pi-google"
+                         disabled="#{sessionAccount.internalAccount.isBanned}"
+                         rendered="#{applicationHolder.devEnvironment}"/>
+        <p:commandButton value="test acc3 login without google"
+actionListener="#{sessionAccount.attachAccount(
+accountService.findOrCreateAccount('55555',sessionAccount.locale.toString(),sessionAccount.geonameId))}"
+                         action="/account.xhtml?faces-redirect=true"
+                         process="@this" update="@this msgs"
+                         onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()"
+                         style="text-align:left;" icon="pi pi-google"
+                         disabled="#{sessionAccount.internalAccount.isBanned}"
+                         rendered="#{applicationHolder.devEnvironment}"/>
+        <h:outputText value="#{l10n['sign.in.with.google']}"/>
+        <p:commandLink actionListener="#{requestLoginGoogle.redirectToOAuth20Provider()}"
+                       process="@this" update="@this msgs"
+                       onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()">
+            <p:graphicImage value="#{resource['static/images/google80.png']}" title="#{l10n['sign.in.with.google']}" />
+        </p:commandLink>
+    </p:panelGrid>
+    <p:blockUI widgetVar="buiLoginForm" block="loginBtnsFormId:loginBtnsPanelGridId"/>
+    </h:form>
+</ui:fragment>
+<p:messages id="msgs" for="msgs,nameFormId:inNameId" showDetail="true" skipDetailIfEqualsSummary="true"/>
+<h:form id="ownerBntsForm" rendered="#{sessionAccount.internalAccount.calcedRoles.owner}">
+<p:panelGrid columns="1">
+    <f:facet name="header">
+        <h:outputText value="test exception msgs buttons"/>
+    </f:facet>
+<p:commandButton value="testThrowRuntimeException()"
+                 actionListener="#{applicationHolder.testThrowRuntimeException()}"
+                 process="@this" update="@this"
+                 icon="pi pi-bolt"
+                 onstart="PF('buiOwnerForm').show()" oncomplete="PF('buiOwnerForm').hide()"
+                 disabled="#{sessionAccount.internalAccount.isBanned}"/>
+<p:commandButton value="testThrowError()"
+                 actionListener="#{applicationHolder.testThrowError()}"
+                 process="@this" update="@this"
+                 icon="pi pi-bolt"
+                 onstart="PF('buiOwnerForm').show()" oncomplete="PF('buiOwnerForm').hide()"
+                 disabled="#{sessionAccount.internalAccount.isBanned}"/>
+<p:commandButton value="testDebugMe()"
+                 actionListener="#{applicationHolder.testDebugMe()}"
+                 process="@this" update="@this"
+                 icon="pi pi-bolt"
+                 onstart="PF('buiOwnerForm').show()" oncomplete="PF('buiOwnerForm').hide()"
+                 disabled="#{sessionAccount.internalAccount.isBanned}"/>
+</p:panelGrid>
+<p:outputPanel deferred="true">
+<p:dataTable id="cacheStatsdataListId" value="#{cacheManager.cacheNames}" var="cacheName"
+             style="margin-top:10px;">
+    <f:facet name="header">
+        <h:outputText value="#{l10n['manage.caches']}"/>
+    </f:facet>
+    <p:column headerText="#{l10n['name']}">
+        <h:outputText value="#{cacheName}"/>
+    </p:column>
+    <p:column headerText="#{l10n['manage']}" width="190">
+        <p:commandButton value="evict #{cacheService.count(cacheName)} items"
+                         actionListener="#{cacheService.evictAll(cacheName)}"
+                         process="@this" update="ownerBntsForm:cacheStatsdataListId"
+                         icon="pi pi-eraser"
+                         onstart="PF('buiOwnerForm').show()" oncomplete="PF('buiOwnerForm').hide()"
+                         disabled="#{sessionAccount.internalAccount.isBanned}"/>
+    </p:column>
+    <p:column headerText="#{l10n['stats']}">
+        <h:outputText id="geoInfoByGeonameIdCache"
+                      value="#{cacheService.cacheStats(cacheName).toString()}" style="white-space:pre-wrap;"/>
+    </p:column>
+</p:dataTable>
+</p:outputPanel>
+<p:blockUI block="ownerBntsForm" widgetVar="buiOwnerForm"/>
+</h:form>
+</ui:define>
+</ui:composition>
+</html>

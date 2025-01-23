@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false)}" onPostback="false"/>
+    <o:viewAction actionListener="#{requestSetting.fetch(SettingEnum.RECOMMENDATIONS_JSON.key, true, true, null)}" onPostback="false"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['recommendations']}</ui:define>
+<ui:define name="centerForAll">
+<p:panel header="#{l10n['recommendations']}" style="max-width:75%;margin:0 auto;">
+    <h:outputText value="#{requestSetting.selectedChild.get(sessionAccount.locale.language)}"
+                  escape="false" style="white-space:pre-wrap;"/>
+</p:panel>
+</ui:define>
+</ui:composition>
+</html>

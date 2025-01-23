@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false)}" onPostback="false"/>
+    <o:viewAction actionListener="#{viewUser.fetch()}" onPostback="false" if="#{sessionAccount.fetchAccepted}"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['users']}</ui:define>
+<ui:define name="centerAuthed">
+<h:form id="editChildsForm">
+<p:dataTable id="childsTable" value="#{viewUser.childsLazyModel}" var="child"
+             lazy="true" selection="#{viewUser.selectedChild}"
+             selectionMode="single"
+             disabledSelection="#{!sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"
+             rowKey="#{child.id}" expandedRow="true"
+             paginator="true" rows="15"
+             rowsPerPageTemplate="15,30,50"
+             currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+             paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}">
+    <f:facet name="header">
+        <h:outputText value="#{l10n['users']}" style="font-weight:normal;"/>
+    </f:facet>
+    <p:ajax event="rowSelect" resetValues="true"
+            process="@this"
+            update="dialogForm dialogMsgs"
+            onsuccess="PF('editChildDialogW').show()"
+            disabled="#{!sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}">
+    </p:ajax>
+    <p:columnGroup type="header">
+        <p:row>
+            <p:column width="32"/>
+            <p:column width="32" headerText="#{l10n['view']}"/>
+            <p:column width="175" headerText="#{l10n['location']}"/>
+            <p:column headerText="#{l10n['name']}"/>
+            <p:column width="175" headerText="#{l10n['dates.registration.and.auth']}"/>
+            <p:column headerText="#{l10n['google.sub']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
+            <p:column headerText="#{l10n['language']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
+            <p:column width="32" headerText="#{l10n['roles']}"/>
+            <p:column headerText="#{l10n['banned']}"/>
+            <p:column headerText="#{l10n['banned.reason']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
+            <p:column width="80" headerText="#{l10n['grade.eatlog']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
+        </p:row>
+    </p:columnGroup>
+    <p:column>
+        <ui:fragment rendered="#{child.isBanned}">
+            <p:graphicImage value="#{resource['static/images/banned.jpg']}"
+                            style="display:block;margin:0 auto;"/>
+        </ui:fragment>
+        <ui:fragment rendered="#{!child.isBanned}">
+            <p:graphicImage srcset="#{child.googlePictureUrl}"
+                            style="display:block;margin:0 auto;"
+                            rendered="#{not empty child.googlePictureUrl}"/>
+            <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
+                            style="display:block;margin:0 auto;"
+                            rendered="#{empty child.googlePictureUrl}">
+            </p:graphicImage>
+        </ui:fragment>
+    </p:column>
+    <p:column style="text-align:center;">
+        <p:linkButton outcome="index" target="_blank" icon="pi pi-eye" title="#{l10n['view.user.page']}">
+            <f:param name="id" value="#{child.id}"/>
+        </p:linkButton>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{cacheService.allocateGeoInfoByGeonameId(child.geonameId)
+        .buildLocationRaw(sessionAccount.locale, '&lt;br/&gt;', true)}"
+        escape="false" rendered="#{child.geonameId != null}"/>
+    </p:column>
+    <p:column>
+        <p:link outcome="index" value="#{child.name}" target="_blank" style="white-space:pre-wrap;">
+            <f:param name="id" value="#{child.id}"/>
+        </p:link>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.createdAt}">
+            <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+        </h:outputText><br/>
+        <h:outputText value="#{dependentUtil.humanLifetime(child.createdAt)}">
+            <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+        </h:outputText><br/>
+        <h:outputText value="#{child.lastauthAt}">
+            <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+        </h:outputText><br/>
+        <h:outputText value="#{dependentUtil.humanLifetime(child.lastauthAt)}">
+            <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+        </h:outputText>
+    </p:column>
+    <p:column rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}">
+        <h:outputText value="#{child.googleSub}" style="width:75px;display:block;word-wrap:break-word;"/>
+    </p:column>
+    <p:column rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}">
+        <h:outputText value="#{child.localeSegments}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{l10n['no']}"
+                      rendered="#{empty child.roles and sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
+        <p:selectManyCheckbox value="#{child.roles}" style="min-width:130px;"
+                              layout="pageDirection" disabled="true"
+                              rendered="#{not empty child.roles}">
+            <f:selectItems value="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin
+            ? dependentUtil.mergeAllRoleNamesWithOthers(child.roles) : child.roles}"
+                           var="roleName"
+                           itemValue="#{roleName}" itemLabel="#{roleName}"
+                           itemDisabled="true"/>
+        </p:selectManyCheckbox>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{l10n['yes']}" rendered="#{child.isBanned}"/>
+        <h:outputText value="#{l10n['no']}"
+                              rendered="#{!child.isBanned and sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
+    </p:column>
+    <p:column rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}">
+        <h:outputText value="#{child.bannedReason}" style="white-space:pre-wrap;"/>
+    </p:column>
+    <p:column rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}">
+        <p:rating value="#{child.gradeEatlog}" cancel="false" readonly="true"/>
+    </p:column>
+    <p:rowExpansion rendered="#{child.weightChart != null}">
+        <p:lineChart model="#{child.weightChart}"
+                     style="width:100%;max-height:300px;"/>
+    </p:rowExpansion>
+</p:dataTable>
+<p:blockUI
+block="childsTable"
+trigger="childsTable,dialogForm:saveBtn"/>
+</h:form>
+<p:messages id="msgs" for="msgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+</ui:define>
+
+<ui:define name="dialogs">
+<p:dialog widgetVar="editChildDialogW" header="#{l10n['account.options']}"
+          position="center,center" positionType="fixed"
+          responsive="true" fitViewport="true" resizable="false"
+          closeOnEscape="true"
+          showEffect="fade" modal="true">
+<h:form id="dialogForm">
+    <p:panelGrid styleClass="ui-panelgrid-blank">
+		<p:row>
+            <p:column colspan="2">
+                <p:outputPanel id="pictureOutputPanelId">
+                <ui:fragment rendered="#{viewUser.selectedChild.isBanned}">
+                    <p:graphicImage value="#{resource['static/images/banned.jpg']}"
+                                    style="display:block;margin:0 auto;"/>
+                </ui:fragment>
+                <ui:fragment rendered="#{!viewUser.selectedChild.isBanned}">
+                    <p:graphicImage srcset="#{viewUser.selectedChild.googlePictureUrl}"
+                                    style="display:block;margin:0 auto;"
+                                    rendered="#{not empty viewUser.selectedChild.googlePictureUrl}"/>
+                    <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
+                                    style="display:block;margin:0 auto;"
+                                    rendered="#{empty viewUser.selectedChild.googlePictureUrl}"/>
+                </ui:fragment>
+                </p:outputPanel>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel value="#{l10n['id']}"/>
+            </p:column>
+            <p:column>
+                <h:outputText value="#{viewUser.selectedChild.id}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inNameId" value="#{l10n['name']}"/>
+            </p:column>
+            <p:column>
+                <p:inputText id="inNameId" value="#{viewUser.selectedChild.name}" required="true"
+                             placeholder="#{l10n['name']}"
+                             size="32"
+                             requiredMessage="#{l10n['insert.name']}"
+                disabled="#{!(sessionAccount.internalAccount.calcedRoles.owner or (!viewUser.selectedChild.calcedRoles.owner
+                and sessionAccount.internalAccount.calcedRoles.admin))}"
+                onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel value="#{l10n['roles']}"/>
+            </p:column>
+            <p:column>
+                <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum" allSuffix="ALL_ENUM_VALUES"/>
+                <p:selectManyCheckbox value="#{viewUser.selectedChild.roles}"
+                                      layout="pageDirection"
+                                      disabled="#{!sessionAccount.internalAccount.calcedRoles.owner}">
+                    <f:selectItems value="#{dependentUtil.mergeAllRoleNamesWithOthers(viewUser.selectedChild.roles)}"
+                                   var="roleName"
+                                   itemValue="#{roleName}" itemLabel="#{roleName}"
+                    itemDisabled="#{viewUser.selectedChild.id.equals(sessionAccount.internalAccount.id)
+                    and roleName.equals(RoleEnum.OWNER.roleName)}"/>
+                </p:selectManyCheckbox>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel value="#{l10n['banned']}"/>
+            </p:column>
+            <p:column>
+                <p:selectBooleanButton value="#{viewUser.selectedChild.isBanned}"
+                                       onLabel="#{l10n['yes']}" offLabel="#{l10n['no']}"
+                disabled="#{!(!viewUser.selectedChild.id.equals(sessionAccount.internalAccount.id)
+                and (sessionAccount.internalAccount.calcedRoles.owner or (!viewUser.selectedChild.calcedRoles.owner
+                and sessionAccount.internalAccount.calcedRoles.admin)))}">
+                    <p:ajax process="@this dialogForm:bannedReasonId" resetValues="true"
+                            listener="#{viewUser.onBannedChanged()}"
+                            update="dialogForm:pictureOutputPanelId dialogForm:bannedReasonId"/>
+                </p:selectBooleanButton>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel value="#{l10n['banned.reason']}"/>
+            </p:column>
+            <p:column>
+                <p:inputText id="bannedReasonId" value="#{viewUser.selectedChild.bannedReason}"
+                             placeholder="#{l10n['insert.reason.and.date']}"
+                             size="32"
+                disabled="#{!(!viewUser.selectedChild.id.equals(sessionAccount.internalAccount.id)
+                and (sessionAccount.internalAccount.calcedRoles.owner or (!viewUser.selectedChild.calcedRoles.owner
+                and sessionAccount.internalAccount.calcedRoles.admin)))}"
+                onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column colspan="2">
+            <p:commandButton id="saveBtn" value="#{l10n['save']}" icon="pi pi-check"
+                             process="@this dialogForm"
+                             actionListener="#{viewUser.update()}"
+                             update="dialogForm dialogMsgs siteVisitorsOutputPanelId"
+                disabled="#{!(
+                (sessionAccount.internalAccount.calcedRoles.owner or (!viewUser.selectedChild.calcedRoles.owner
+                and sessionAccount.internalAccount.calcedRoles.admin)))}"/>
+            <p:commandButton value="#{l10n['cancel']}" icon="pi pi-times"
+                             type="button"
+                             style="margin-left:5px;"
+                             onclick="PF('editChildDialogW').hide()"/>
+            </p:column>
+        </p:row>
+    </p:panelGrid>
+</h:form>
+<p:messages id="dialogMsgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+<p:blockUI block="dialogForm"
+trigger="dialogForm:saveBtn"/>
+</p:dialog>
+</ui:define>
+</ui:composition>
+</html>

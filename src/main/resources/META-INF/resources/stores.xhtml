@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication()}" onPostback="false"/>
+    <o:viewAction actionListener="#{viewStore.fetch()}" onPostback="false" if="#{sessionAccount.fetchAccepted}"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['stores']}</ui:define>
+<ui:define name="centerAuthed">
+<h:form id="editChildsForm">
+<p:dataTable id="childsTable" value="#{viewStore.childsLazyModel}" var="child"
+             lazy="true" selection="#{viewStore.selectedChild}"
+             selectionMode="single"
+             disabledSelection="#{viewStore.observationWrapper.observation}"
+             rowKey="#{child.id}"
+             paginator="true" rows="15"
+             rowsPerPageTemplate="15,30,50"
+             currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+             paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+             rowStyleClass="rightAlign">
+    <f:facet name="header">
+        <h:outputText value="#{l10n['stores']}" style="font-weight:normal;"/>
+    </f:facet>
+    <p:ajax event="rowSelect" resetValues="true"
+            process="@this"
+            listener="#{viewStore.onChildSelect()}"
+            update="dialogForm dialogMsgs"
+            onsuccess="PF('editChildDialogW').show()"
+            disabled="#{viewStore.observationWrapper.observation}">
+    </p:ajax>
+    <p:columnGroup type="header">
+        <p:row>
+            <p:column headerText="#{l10n['title']}" width="250"/>
+            <p:column headerText="#{l10n['date.updated']}"/>
+        </p:row>
+    </p:columnGroup>
+    <p:column style="text-align:left;white-space:pre-wrap;">
+        <h:outputText value="#{child.title}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.updatedAt}">
+            <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
+        </h:outputText>
+    </p:column>
+</p:dataTable>
+<p:commandButton id="addChildBtn" value="#{l10n['add.store']}"
+                 process="@this"
+                 actionListener="#{viewStore.add()}"
+                 update="dialogForm dialogMsgs"
+                 onsuccess="PF('editChildDialogW').show()"
+                 resetValues="true"
+                 icon="ui-icon-plusthick"
+                 style="margin-top:10px;" styleClass="ui-button-success"
+                 disabled="#{viewStore.observationWrapper.observation}"/>
+<p:blockUI
+block="childsTable,addChildBtn"
+trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
+</h:form>
+<p:messages id="msgs" for="msgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+</ui:define>
+
+<ui:define name="dialogs">
+<p:dialog widgetVar="editChildDialogW" header="#{l10n['store.options']}"
+          position="center,center" positionType="fixed"
+          responsive="true" fitViewport="true" resizable="false"
+          closeOnEscape="true"
+          showEffect="fade" modal="true"
+          rendered="#{!viewStore.observationWrapper.observation}">
+<h:form id="dialogForm">
+    <p:panelGrid styleClass="ui-panelgrid-blank">
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inTitleId" value="#{l10n['title']}"/>
+            </p:column>
+            <p:column>
+                <p:inputText id="inTitleId" value="#{viewStore.selectedChild.title}" required="true"
+                             placeholder="#{l10n['title']}"
+                             size="32"
+                             requiredMessage="#{l10n['enter.store.title']}"
+                             onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column colspan="2">
+            <p:commandButton id="saveBtn" value="#{l10n['save']}" icon="pi pi-check"
+                             process="@this dialogForm"
+                             actionListener="#{viewStore.saveOrUpdate()}"
+                             update="dialogForm dialogMsgs"/>
+            <p:commandButton id="deleteBtn" value="#{l10n['delete']}" icon="pi pi-trash"
+                             process="@this"
+                             actionListener="#{viewStore.delete()}"
+                             update="dialogForm dialogMsgs"
+                             disabled="#{viewStore.selectedChild.id == null or viewStore.childRelations gt 0}"
+                             style="margin-left:5px;"
+                             styleClass="ui-button-danger">
+                <p:confirm type="popup" header="#{l10n['confirm.delete.store']}" icon="pi pi-exclamation-triangle"
+                           message="#{dependentUtil.msgFromBundle('sure.delete.store', viewStore.selectedChild.title)}"/>
+            </p:commandButton>
+            <p:commandButton value="#{l10n['cancel']}" icon="pi pi-times"
+                             type="button"
+                             style="margin-left:5px;"
+                             onclick="PF('editChildDialogW').hide()"/>
+            </p:column>
+        </p:row>
+    </p:panelGrid>
+</h:form>
+<p:messages id="dialogMsgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+<p:blockUI block="dialogForm"
+trigger="dialogForm:saveBtn,dialogForm:deleteBtn"/>
+</p:dialog>
+<ui:include src="../template/confirmBtns.xhtml"/>
+</ui:define>
+</ui:composition>
+</html>

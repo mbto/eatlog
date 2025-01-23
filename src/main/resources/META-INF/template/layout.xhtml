@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions"
+      xmlns:jc="jakarta.tags.core">
+<h:head>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="robots" content="all"/>
+    <meta name="description" content="#{cacheService.allocateSettingByKey(SettingEnum.DESCRIPTION_JSON.key, true, false, null).get(sessionAccount.locale.language)}"/>
+    <link rel="shortcut icon" type="image/x-icon" href="#{resource['favicon.ico']}"/>
+    <h:outputStylesheet name="static/css/gh-fork-ribbon.min.css" />
+    <h:outputStylesheet name="static/css/default.css" />
+    <title>eatlog - <ui:insert name="title"/></title>
+</h:head>
+<h:body>
+    <a class="github-fork-ribbon right-top" href="https://github.com/mbto/eatlog" data-ribbon="Eatlog on GitHub" title="Eatlog on GitHub" target="_blank"/>
+    <div class="ui-g">
+    <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
+        <p:toolbar>
+            <p:toolbarGroup>
+                <p:linkButton href="/index#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['calculations']}" icon="pi pi-calculator"/>
+                <p:linkButton href="/stores#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['stores']}" icon="pi pi-sitemap"/>
+                <p:linkButton href="/products#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['products']}" icon="pi pi-cart-plus"/>
+                <p:linkButton href="/limitations#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['limitations']}" icon="pi pi-exclamation-triangle"/>
+                <p:linkButton href="/recommendations#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['recommendations']}" icon="pi pi-info-circle"/>
+                <p:linkButton href="/users#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['users']}" icon="pi pi-users"/>
+                <p:linkButton href="/donate#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['donate']}" icon="pi pi-dollar"/>
+                <p:linkButton href="/settings#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['settings']}" icon="pi pi-cog"
+                              rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrRedactor}"/>
+            </p:toolbarGroup>
+            <p:toolbarGroup align="right">
+                <h:form>
+                <p:selectOneMenu value="#{sessionAccount.locale}">
+                    <p:ajax event="valueChange" onsuccess="document.location = document.location;"
+                            listener="#{sessionAccount.onLocaleChanged()}"
+                            update="@none"/>
+                    <f:selectItems value="#{applicationHolder.localeSettingsByAvailableLocale.entrySet()}"
+                                   var="lw"
+                                   itemLabel="#{lw.value.label}" itemValue="#{lw.key}"/>
+                </p:selectOneMenu>
+                </h:form>
+                <p:link href="/account#{requestParamsHolder.actualRequestParamsMerged}"
+                        style="margin-right:120px;margin-left:.1em;"
+                        rendered="#{sessionAccount.authed}">
+                <p:chip>
+                <p:avatar shape="circle">
+                    <ui:fragment rendered="#{sessionAccount.internalAccount.isBanned}">
+                        <h:graphicImage value="#{resource['static/images/banned.jpg']}"/>
+                    </ui:fragment>
+                    <ui:fragment rendered="#{!sessionAccount.internalAccount.isBanned}">
+                        <h:graphicImage value="#{sessionAccount.internalAccount.googlePictureUrl}"
+                                        rendered="#{not empty sessionAccount.internalAccount.googlePictureUrl}"/>
+                        <h:graphicImage value="#{resource['static/images/mouse.jpg']}"
+                                        rendered="#{empty sessionAccount.internalAccount.googlePictureUrl}"/>
+                    </ui:fragment>
+                </p:avatar>
+                <h:outputText value="#{l10n['account']}" style="font-weight:normal;"/>
+                </p:chip>
+                </p:link>
+                <p:linkButton href="/account#{requestParamsHolder.actualRequestParamsMerged}"
+                              value="#{l10n['account']}" icon="pi pi-user"
+                              style="margin-right:120px;margin-left:.1em;"
+                              rendered="#{!sessionAccount.authed}"/>
+            </p:toolbarGroup>
+        </p:toolbar>
+    </div>
+    <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
+        <p:messages id="userStateMsgs" for="userStateMsgs"
+                    showDetail="true" skipDetailIfEqualsSummary="true"
+                    style="margin:0 auto;display:table;"/>
+        <ui:fragment rendered="#{requestParamsHolder.showGoToYourPageLink}">
+            <p:link value="#{l10n['go.to.your.page']}" href="#{request.requestURI}" style="margin:0 auto;display:table;"/>
+        </ui:fragment>
+        <ui:insert name="centerForAll"/>
+        <ui:fragment rendered="#{sessionAccount.fetchAccepted}">
+            <ui:insert name="centerAuthed"/>
+            <ui:fragment rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrRedactor}">
+                <ui:insert name="centerForOwnerOrRedactor"/>
+            </ui:fragment>
+        </ui:fragment>
+    </div>
+    </div>
+    <noindex>
+    <p:separator />
+    <p:outputPanel id="siteVisitorsOutputPanelId" style="margin-top:10px;white-space:pre-wrap;font-size:smaller;">
+        <jc:set scope="request" var="siteVisitors" value="#{cacheService.allocateSiteVisitors()}"/>
+        <h:outputText value="#{l10n['on.site'] += ' '}"/>
+        <h:outputText
+value="#{dependentUtil.declensionValuedL10N(siteVisitors.guestsCount, 'guest')}"
+rendered="#{siteVisitors.guestsCount gt 0}"/>
+        <h:outputText value=" #{l10n['and']} "
+rendered="#{siteVisitors.guestsCount gt 0 and siteVisitors.authedUsers.size() gt 0}"/>
+        <h:outputText
+value="#{dependentUtil.declensionValuedL10N(siteVisitors.authedUsers.size(), 'user')}: "
+rendered="#{siteVisitors.authedUsers.size() gt 0}"/>
+        <ui:repeat value="#{siteVisitors.authedUsers}" var="siteVisitor" varStatus="varStatus">
+            <h:outputText id="visNameTextId" styleClass="visitorLink" rendered="#{!sessionAccount.authed}"
+value="#{(not empty siteVisitor.geoInfo.emoji ? siteVisitor.geoInfo.emoji += ' ' : '') += siteVisitor.name}"/>
+            <p:link id="visNameLinkId" target="_blank" outcome="index" styleClass="visitorLink" rendered="#{sessionAccount.authed}"
+value="#{(not empty siteVisitor.geoInfo.emoji ? siteVisitor.geoInfo.emoji += ' ' : '') += siteVisitor.name}">
+                <f:param name="id" value="#{siteVisitor.accountId}"/>
+            </p:link>
+            <p:tooltip for="visNameTextId,visNameLinkId">
+                <p:avatar shape="circle" style="display:block;margin:0 auto;width:96px;height:96px;">
+                <ui:fragment rendered="#{siteVisitor.banned}">
+                    <p:graphicImage value="#{resource['static/images/banned.jpg']}"/>
+                </ui:fragment>
+                <ui:fragment rendered="#{!siteVisitor.banned}">
+                    <p:graphicImage srcset="#{siteVisitor.googlePictureUrl}"
+                                    rendered="#{not empty siteVisitor.googlePictureUrl}"/>
+                    <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
+                                    rendered="#{empty siteVisitor.googlePictureUrl}"/>
+                </ui:fragment>
+                </p:avatar><br/>
+                <h:outputText value="#{siteVisitor.name}" styleClass="visitorName"/>
+                <ui:fragment rendered="#{siteVisitor.geoInfo != null}">
+                    <br/><h:outputText escape="false"
+value="#{siteVisitor.geoInfo.buildLocationRaw(sessionAccount.locale, '&lt;br/&gt;', true)}"/>
+                </ui:fragment>
+            </p:tooltip>
+            <h:outputText value=", " rendered="#{!varStatus.last}"/>
+        </ui:repeat>
+    </p:outputPanel>
+    <ui:fragment rendered="#{sessionAccount.fetchAccepted}">
+        <ui:insert name="dialogs"/>
+    </ui:fragment>
+    </noindex>
+    <ui:insert name="metrics">
+        <h:outputText value="#{cacheService.allocateSettingByKey(SettingEnum.METRIC_SCRIPTS.key, false, false, null).value}"
+                      escape="false"/>
+    </ui:insert>
+    <noindex>
+    <ui:insert name="excepts">
+        <p:ajaxExceptionHandler onexception="PF('excWid').show();" update="expDialog" type="java.lang.Throwable"/>
+        <ui:include src="../template/exceptionDialog.xhtml"/>
+    </ui:insert>
+    </noindex>
+</h:body>
+</html>

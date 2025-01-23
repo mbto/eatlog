@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<h:head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="robots" content="noindex"/>
+    <link rel="shortcut icon" type="image/x-icon" href="#{resource['favicon.ico']}"/>
+    <h:outputStylesheet name="static/css/gh-fork-ribbon.min.css" />
+    <h:outputStylesheet name="static/css/default.css" />
+    <title>eatlog - #{l10n['error.on.page']}</title>
+</h:head>
+<h:body>
+    <a class="github-fork-ribbon right-top" href="https://github.com/mbto/eatlog" data-ribbon="Eatlog on GitHub" title="Eatlog on GitHub" target="_blank"/>
+    <ui:include src="../template/exceptionDialog.xhtml"/>
+    <ui:include src="../template/reloadBtn.xhtml">
+        <ui:param name="style" value="margin:auto;display:table;"/>
+    </ui:include>
+</h:body>
+</html>

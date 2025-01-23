@@ -1,0 +1,66 @@
+.github-fork-ribbon.right-top:before {
+    background-color: #090;
+}
+.ui-widget {
+    font-family:Verdana,Arial,sans-serif;
+    font-size: 100%;
+}
+.ui-widget .ui-widget {
+    font-size: 100%;
+}
+.ui-panelgrid .ui-panelgrid-cell {
+    padding: 0 10px 0 0;
+}
+.ui-datatable {
+    display: table;
+}
+.ui-datatable table {
+    table-layout: auto !important;
+}
+.ui-datalist {
+    display: table;
+}
+.ui-datalist table {
+    table-layout: auto !important;
+}
+.propToRemove {
+    background-color: #ffa6a6 !important;
+    background-image: none !important;
+    color: #000000 !important;
+}
+.rightDate {
+    display: flex;
+    justify-content: flex-end;
+    margin-left: auto;
+    margin-right: 0;
+    font-style: italic;
+}
+.greenBackColor {
+    background-color: rgba(215, 255, 215, 0.51) !important;
+    background-image: none !important;
+    color: #000000 !important;
+}
+.stNotActive {
+    background-color: #fff0d7 !important;
+    background-image: none !important;
+    color: #000000 !important;
+}
+.rightAlignTotal {
+    text-align: right;
+    background-color: #edf1f4 !important;
+    background-image: none !important;
+    color: #000000 !important;
+}
+.rightAlign {
+    text-align: right;
+}
+.visitorLink {
+    text-decoration: none;
+    color: #474747;
+    white-space: nowrap;
+}
+.visitorName {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+}

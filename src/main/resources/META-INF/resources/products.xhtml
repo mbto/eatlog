@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication()}" onPostback="false"/>
+    <o:viewAction actionListener="#{viewProduct.fetch()}" onPostback="false" if="#{sessionAccount.fetchAccepted}"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['products']}</ui:define>
+<ui:define name="centerAuthed">
+<h:form id="selectParentForm">
+<p:selectOneMenu id="selectParent" value="#{viewProduct.selectedParentId}"
+                 dynamic="true" height="600" autoWidth="true"
+                 style="margin-bottom:10px;">
+    <p:ajax event="valueChange" listener="#{viewProduct.onParentSelected()}" update="@this editChildsForm" />
+    <f:selectItem itemLabel="#{l10n['stores.list']}" noSelectionOption="true" itemDisabled="true" />
+    <f:selectItems value="#{viewProduct.parentById.values()}" var="st"
+                   itemValue="#{st.id}" itemLabel="#{st.title}"/>
+    <f:facet name="footer">
+        <h:outputText value="#{dependentUtil.declensionValuedL10N(viewProduct.parentById.size(),'store')}"/>
+    </f:facet>
+</p:selectOneMenu>
+<p:blockUI block="selectParent,editChildsForm" trigger="selectParent"/>
+</h:form>
+<h:form id="editChildsForm">
+<p:dataTable id="childsTable" value="#{viewProduct.childsLazyModel}" var="child"
+             lazy="true" selection="#{viewProduct.selectedChild}"
+             selectionMode="single"
+             disabledSelection="#{viewProduct.observationWrapper.observation}"
+             rowKey="#{child.id}"
+             paginator="true" rows="15"
+             rowsPerPageTemplate="15,30,50"
+             currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+             paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+             rowStyleClass="rightAlign"
+             rendered="#{viewProduct.selectedParentId != null}">
+    <f:facet name="header">
+        <h:outputText value="#{l10n['products']}" style="font-weight:normal;"/>
+    </f:facet>
+    <p:ajax event="rowSelect" resetValues="true"
+            process="@this"
+            listener="#{viewProduct.onChildSelect()}"
+            update="dialogForm dialogMsgs"
+            onsuccess="PF('editChildDialogW').show()"
+            disabled="#{viewProduct.observationWrapper.observation}">
+    </p:ajax>
+    <p:columnGroup type="header">
+        <p:row>
+            <p:column colspan="2"/>
+            <p:column colspan="4" headerText="#{l10n['bju.and.kkal.per.100gr']}"/>
+        </p:row>
+        <p:row>
+            <p:column headerText="#{l10n['title']}" width="250"/>
+            <p:column headerText="#{l10n['gr.in.portion']}" width="60"/>
+            <p:column width="70">
+                <f:facet name="header">
+                    <h:outputText value="#{l10n['b']}"/><br/>
+                    <h:outputText value="#{l10n['kkal']}"/>
+                </f:facet>
+            </p:column>
+            <p:column width="70">
+                <f:facet name="header">
+                    <h:outputText value="#{l10n['j']}"/><br/>
+                    <h:outputText value="#{l10n['kkal']}"/>
+                </f:facet>
+            </p:column>
+            <p:column width="70">
+                <f:facet name="header">
+                    <h:outputText value="#{l10n['u']}"/><br/>
+                    <h:outputText value="#{l10n['kkal']}"/>
+                </f:facet>
+            </p:column>
+            <p:column width="70">
+                <f:facet name="header">
+                    <h:outputText value="#{l10n['kkal']}"/>
+                </f:facet>
+            </p:column>
+        </p:row>
+    </p:columnGroup>
+    <p:column style="text-align:left;white-space:pre-wrap;">
+        <h:outputText value="#{child.title}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.portionGram}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.b}"/><br/>
+        <h:outputText value="#{child.BToKkal}" rendered="#{child.b != child.BToKkal}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.j}"/><br/>
+        <h:outputText value="#{child.JToKkal}" rendered="#{child.j != child.JToKkal}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.u}"/><br/>
+        <h:outputText value="#{child.UToKkal}" rendered="#{child.u != child.UToKkal}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.kkal}"/>
+    </p:column>
+</p:dataTable>
+<p:commandButton id="addChildBtn" value="#{l10n['add.product']}"
+                 process="@this"
+                 actionListener="#{viewProduct.add()}"
+                 update="dialogForm dialogMsgs"
+                 onsuccess="PF('editChildDialogW').show()"
+                 resetValues="true"
+                 icon="ui-icon-plusthick"
+                 style="margin-top:10px;" styleClass="ui-button-success"
+                 disabled="#{viewProduct.observationWrapper.observation}"
+                 rendered="#{viewProduct.selectedParentId != null}"/>
+<p:commandButton id="copyChildsToMyParentBtn"
+                 value="#{dependentUtil.msgFromBundle('copy.to.my.store',
+                    dependentUtil.declensionValuedL10N(viewProduct.diffWithMyChildsCount, 'product'))}"
+                 process="@this"
+                 actionListener="#{viewProduct.copyChildsToMyParent()}"
+                 update="@this msgs"
+                 icon="pi pi-copy"
+                 style="margin-left:10px;margin-top:10px;"
+                 disabled="#{viewProduct.diffWithMyChildsCount == 0}"
+                 rendered="#{viewProduct.selectedParentId != null and viewProduct.observationWrapper.observation}"/>
+<p:blockUI
+block="selectParentForm:selectParent,childsTable,addChildBtn,copyChildsToMyParentBtn"
+trigger="childsTable,addChildBtn,copyChildsToMyParentBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
+</h:form>
+<p:messages id="msgs" for="msgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+</ui:define>
+
+<ui:define name="dialogs">
+<p:dialog widgetVar="editChildDialogW" header="#{l10n['product.options']}"
+          position="center,center" positionType="fixed"
+          responsive="true" fitViewport="true" resizable="false"
+          closeOnEscape="true"
+          showEffect="fade" modal="true"
+          rendered="#{!viewProduct.observationWrapper.observation}">
+<h:form id="dialogForm">
+    <p:panelGrid styleClass="ui-panelgrid-blank">
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inTitleId" value="#{l10n['title']}"/>
+            </p:column>
+            <p:column>
+                <p:inputText id="inTitleId" value="#{viewProduct.selectedChild.title}" required="true"
+                             placeholder="#{l10n['title']}"
+                             size="32"
+                             requiredMessage="#{l10n['enter.product.title']}"
+                             onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inPortionGramId" value="#{l10n['gr.in.portion']}"/>
+            </p:column>
+            <p:column>
+                <p:inputNumber id="inPortionGramId" value="#{viewProduct.selectedChild.portionGram}"
+                               placeholder="1-9999"
+                               title="#{l10n['gr.in.portion']} 1-9999"
+                               minValue="1" maxValue="9999" decimalPlaces="0" required="true" size="10"
+                               decimalSeparator="." decimalSeparatorAlternative="," thousandSeparator=""
+                               requiredMessage="#{l10n['enter.grams.count.in.portion']}"
+                               onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inBId" value="#{l10n['b.gr']}"/>
+            </p:column>
+            <p:column>
+                <p:inputNumber id="inBId" value="#{viewProduct.selectedChild.b}"
+                               placeholder="0.00-999.99"
+                               title="#{l10n['b.gr']} 0.00-999.99"
+                               minValue="0.00" maxValue="999.99" decimalPlaces="2" required="true" size="10"
+                               decimalSeparator="." decimalSeparatorAlternative="," thousandSeparator=""
+                               requiredMessage="#{l10n['enter.grams.count.b']}"
+                               onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inJId" value="#{l10n['j.gr']}"/>
+            </p:column>
+            <p:column>
+                <p:inputNumber id="inJId" value="#{viewProduct.selectedChild.j}"
+                               placeholder="0.00-999.99"
+                               title="#{l10n['j.gr']} 0.00-999.99"
+                               minValue="0.00" maxValue="999.99" decimalPlaces="2" required="true" size="10"
+                               decimalSeparator="." decimalSeparatorAlternative="," thousandSeparator=""
+                               requiredMessage="#{l10n['enter.grams.count.j']}"
+                               onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inUId" value="#{l10n['u.gr']}"/>
+            </p:column>
+            <p:column>
+                <p:inputNumber id="inUId" value="#{viewProduct.selectedChild.u}"
+                               placeholder="0.00-999.99"
+                               title="#{l10n['u.gr']} 0.00-999.99"
+                               minValue="0.00" maxValue="999.99" decimalPlaces="2" required="true" size="10"
+                               decimalSeparator="." decimalSeparatorAlternative="," thousandSeparator=""
+                               requiredMessage="#{l10n['enter.grams.count.u']}"
+                               onkeypress="if(event.keyCode == 13){return false;}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column colspan="2">
+            <p:commandButton id="saveBtn" value="#{l10n['save']}" icon="pi pi-check"
+                             process="@this dialogForm"
+                             actionListener="#{viewProduct.saveOrUpdate()}"
+                             update="dialogForm dialogMsgs"/>
+            <p:commandButton id="deleteBtn" value="#{l10n['delete']}" icon="pi pi-trash"
+                             process="@this"
+                             actionListener="#{viewProduct.delete()}"
+                             update="dialogForm dialogMsgs"
+                             disabled="#{viewProduct.selectedChild.id == null or viewProduct.childRelations gt 0}"
+                             style="margin-left:5px;"
+                             styleClass="ui-button-danger">
+                <p:confirm type="popup" header="#{l10n['confirm.delete.product']}" icon="pi pi-exclamation-triangle"
+                           message="#{dependentUtil.msgFromBundle('sure.delete.product', viewProduct.selectedChild.title)}"/>
+            </p:commandButton>
+            <p:commandButton value="#{l10n['cancel']}" icon="pi pi-times"
+                             type="button"
+                             style="margin-left:5px;"
+                             onclick="PF('editChildDialogW').hide()"/>
+            </p:column>
+        </p:row>
+    </p:panelGrid>
+</h:form>
+<p:messages id="dialogMsgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+<p:blockUI block="dialogForm"
+trigger="dialogForm:saveBtn,dialogForm:deleteBtn"/>
+</p:dialog>
+<ui:include src="../template/confirmBtns.xhtml"/>
+</ui:define>
+</ui:composition>
+</html>

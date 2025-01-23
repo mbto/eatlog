@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false, RoleEnum.REDACTOR.roleName)}" onPostback="false"/>
+    <o:viewAction actionListener="#{viewSetting.fetch()}" onPostback="false"
+                  if="#{sessionAccount.fetchAccepted and sessionAccount.internalAccount.calcedRoles.ownerOrRedactor}"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['settings']}</ui:define>
+<ui:define name="centerForOwnerOrRedactor">
+<h:form id="editChildsForm">
+<p:dataTable id="childsTable" value="#{viewSetting.childsLazyModel}" var="child"
+             lazy="true" selection="#{viewSetting.selectedChild}"
+             selectionMode="single"
+             rowKey="#{child.id}"
+             paginator="true" rows="15"
+             rowsPerPageTemplate="15,30,50"
+             currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+             paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}">
+    <f:facet name="header">
+        <h:outputText value="#{l10n['settings']}" style="font-weight:normal;"/>
+    </f:facet>
+    <p:ajax event="rowSelect" resetValues="true"
+            process="@this"
+            update="dialogForm dialogMsgs"
+            onsuccess="PF('editChildDialogW').show()">
+    </p:ajax>
+    <p:columnGroup type="header">
+        <p:row>
+            <p:column headerText="#{l10n['key']}"/>
+            <p:column headerText="#{l10n['value']}"/>
+            <p:column headerText="#{l10n['roles.for.view.edit']}"/>
+        </p:row>
+    </p:columnGroup>
+    <p:column>
+        <h:outputText value="#{child.key}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.value}"/>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{l10n['no']}"
+                      rendered="#{empty child.roles}"/>
+        <p:selectManyCheckbox value="#{child.roles}" style="min-width:130px;"
+                              layout="pageDirection" disabled="true"
+                              rendered="#{not empty child.roles}">
+            <f:selectItems value="#{child.roles}"
+                           var="roleName"
+                           itemValue="#{roleName}" itemLabel="#{roleName}"
+                           itemDisabled="true"/>
+        </p:selectManyCheckbox>
+    </p:column>
+</p:dataTable>
+<p:commandButton id="addChildBtn" value="#{l10n['add.setting']}"
+                 process="@this"
+                 actionListener="#{viewSetting.add()}"
+                 update="dialogForm dialogMsgs"
+                 onsuccess="PF('editChildDialogW').show()"
+                 resetValues="true"
+                 icon="ui-icon-plusthick"
+                 style="margin-top:10px;" styleClass="ui-button-success"
+                 disabled="#{!sessionAccount.internalAccount.calcedRoles.owner}"/>
+<p:blockUI
+block="childsTable,addChildBtn"
+trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
+</h:form>
+<p:messages id="msgs" for="msgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+</ui:define>
+
+<ui:define name="dialogs">
+<p:dialog widgetVar="editChildDialogW" header="#{l10n['setting.options']}"
+          position="center,center" positionType="fixed"
+          responsive="true" fitViewport="true" resizable="false"
+          closeOnEscape="true"
+          showEffect="fade" modal="true">
+<h:form id="dialogForm">
+    <p:panelGrid styleClass="ui-panelgrid-blank">
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inKeyId" value="#{l10n['key']}"/>
+            </p:column>
+            <p:column>
+                <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+                <p:selectOneMenu id="inKeyId" value="#{viewSetting.selectedChild.key}" required="true"
+                                 placeholder="#{l10n['key']}"
+                                 autoWidth="true" height="400"
+                                 editable="true"
+                                 requiredMessage="#{l10n['enter.setting.key']}"
+                                 validator="#{viewSetting.validateKey}"
+                                 disabled="#{!sessionAccount.internalAccount.calcedRoles.owner}">
+                    <f:selectItems value="#{SettingEnum.ALL_ENUM_VALUES}" var="me"
+                                   itemValue="#{me.key}" itemLabel="#{me.key}"
+                                   itemDisabled="#{!sessionAccount.internalAccount.calcedRoles.owner}"/>
+                </p:selectOneMenu>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column>
+                <p:outputLabel for="inValueId" value="#{l10n['value']}"/>
+            </p:column>
+            <p:column>
+                <p:inputTextarea id="inValueId" value="#{viewSetting.selectedChild.value}" required="true"
+                                 placeholder="#{l10n['value']}"
+                                 requiredMessage="#{l10n['enter.setting.value']}"
+                                 cols="60" rows="20" autoResize="false"
+                                 disabled="#{!(sessionAccount.internalAccount.calcedRoles.owner
+                                 or sessionAccount.internalAccount.hasAnyRole(viewSetting.selectedChild.roles))}"/>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column style="width:100px;">
+                <p:outputLabel value="#{l10n['roles.for.view.edit']}"/>
+            </p:column>
+            <p:column>
+                <p:selectManyCheckbox value="#{viewSetting.selectedChild.roles}"
+                                      layout="pageDirection"
+                                      disabled="#{!sessionAccount.internalAccount.calcedRoles.owner}">
+                    <f:selectItems value="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin
+                    ? dependentUtil.mergeAllRoleNamesWithOthers(viewSetting.selectedChild.roles) : viewSetting.selectedChild.roles}"
+                                   var="roleName"
+                                   itemValue="#{roleName}" itemLabel="#{roleName}"
+                                   itemDisabled="#{!sessionAccount.internalAccount.calcedRoles.owner}"/>
+                </p:selectManyCheckbox>
+            </p:column>
+        </p:row>
+        <p:row>
+            <p:column colspan="2">
+            <p:commandButton id="saveBtn" value="#{l10n['save']}" icon="pi pi-check"
+                             process="@this dialogForm"
+                             actionListener="#{viewSetting.saveOrUpdate()}"
+                             update="dialogForm dialogMsgs"
+                             disabled="#{!(sessionAccount.internalAccount.calcedRoles.owner
+                             or sessionAccount.internalAccount.hasAnyRole(viewSetting.selectedChild.roles))}"/>
+            <p:commandButton id="deleteBtn" value="#{l10n['delete']}" icon="pi pi-trash"
+                             process="@this"
+                             actionListener="#{viewSetting.delete()}"
+                             update="dialogForm dialogMsgs"
+                             disabled="#{viewSetting.selectedChild.id == null or !sessionAccount.internalAccount.calcedRoles.owner}"
+                             style="margin-left:5px;"
+                             styleClass="ui-button-danger">
+                <p:confirm type="popup" header="#{l10n['confirm.delete.setting']}" icon="pi pi-exclamation-triangle"
+                           message="#{dependentUtil.msgFromBundle('sure.delete.setting', viewSetting.selectedChild.key)}"/>
+            </p:commandButton>
+            <p:commandButton value="#{l10n['cancel']}" icon="pi pi-times"
+                             type="button"
+                             style="margin-left:5px;"
+                             onclick="PF('editChildDialogW').hide()"/>
+            </p:column>
+        </p:row>
+    </p:panelGrid>
+</h:form>
+<p:messages id="dialogMsgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+<p:blockUI block="dialogForm"
+trigger="dialogForm:saveBtn,dialogForm:deleteBtn"/>
+</p:dialog>
+<ui:include src="../template/confirmBtns.xhtml"/>
+</ui:define>
+<ui:define name="metrics"/>
+</ui:composition>
+</html>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions">
+<f:metadata>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false)}" onPostback="false"/>
+    <o:viewAction actionListener="#{requestSetting.fetch(SettingEnum.DONATE_LINKS_JSON.key, true, true, null)}" onPostback="false"/>
+</f:metadata>
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="title">#{l10n['donate']}</ui:define>
+<ui:define name="centerForAll">
+<p:panel id="donatePanelId" header="#{l10n['donate']}" style="width:355px;margin:0 auto;">
+    <ui:fragment rendered="#{not empty requestSetting.selectedChild['htmls']
+    or not empty requestSetting.selectedChild['directUrl']}">
+        <h:outputText value="#{requestSetting.selectedChild.get(sessionAccount.locale.language).get('pay')}"/><br/>
+        <ui:repeat value="#{requestSetting.selectedChild['htmls']}" var="html">
+            <br/><h:outputText value="#{html}" escape="false"/>
+        </ui:repeat>
+        <br/>
+        <p:linkButton value="#{l10n['other.sum']}" target="_blank"
+                      href="#{requestSetting.selectedChild['directUrl']}"
+                      icon="pi pi-money-bill"
+                      rendered="#{not empty requestSetting.selectedChild['directUrl']}"/>
+    </ui:fragment>
+    <ui:fragment rendered="#{empty requestSetting.selectedChild['htmls']
+    and empty requestSetting.selectedChild['directUrl']}">
+        <h:outputText value="#{l10n['donate.disabled']}"/>
+    </ui:fragment>
+    <f:facet name="footer">
+        <p:rating value="5" cancel="false" readonly="true"
+                  rendered="#{!sessionAccount.authed}"/>
+        <h:form rendered="#{sessionAccount.authed}">
+        <p:rating id="ratingId" value="#{sessionAccount.internalAccount.gradeEatlog}" readonly="#{sessionAccount.internalAccount.isBanned}">
+            <p:ajax event="rate"
+                    process="@this"
+                    listener="#{sessionAccount.updateGradeEatlog()}"
+                    update="@this msgs"/>
+            <p:ajax event="cancel"
+                    process="@this"
+                    listener="#{sessionAccount.updateNullGradeEatlog()}"
+                    update="@this msgs"/>
+        </p:rating>
+        <p:blockUI trigger="ratingId" block="donatePanelId"/>
+        </h:form>
+    </f:facet>
+</p:panel>
+<p:messages id="msgs" for="msgs" showDetail="true" skipDetailIfEqualsSummary="true"/>
+</ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="jakarta.faces.core"
+      xmlns:h="jakarta.faces.html"
+      xmlns:cc="jakarta.faces.composite"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pe="http://primefaces.org/ui/extensions"
+      xmlns:o="http://omnifaces.org/ui"
+      xmlns:of="http://omnifaces.org/functions"
+      xmlns:jc="jakarta.tags.core">
+<body>
+<ui:composition>
+<p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+<p:dialog id="expDialog" widgetVar="excWid" header="#{pfExceptionHandler != null ? l10n['error.on.page'] += ' - ' += pfExceptionHandler.type : ''}"
+          width="1000" height="600" position="center,center" fitViewport="true" modal="true"
+          closeOnEscape="true" visible="#{pfExceptionHandler != null}">
+<p:outputPanel rendered="#{pfExceptionHandler != null}">
+<h:outputText value="#{l10n['error.reload.the.page']}"/><br/>
+<h:outputText value="#{l10n['error.or.contact.owner']} "/>
+<h:outputText value="#{cacheService.allocateSettingByKey(SettingEnum.OWNER_CONTACTS.key,
+false, false, dependentUtil.msgFromBundle('error.undefined.owner.contacts')).value}" escape="false"/><br/>
+<h:outputText value="#{l10n['error.or.developer']} "/>
+<p:link value="https://github.com/mbto/eatlog" target="_blank"
+        href="https://github.com/mbto/eatlog" style="font-weight:normal;"/><br/>
+    <ui:include src="../template/reloadBtn.xhtml">
+        <ui:param name="style" value="margin:20px 5px 20px 5px"/>
+    </ui:include><br/>
+<h:outputText value="#{pfExceptionHandler.formattedTimestamp}"/><br/>
+<h:outputText value="#{l10n['error.message']}: #{pfExceptionHandler.message}"/><br/>
+<jc:set scope="request" var="trace" value="#{pfExceptionHandler.formattedStackTrace}"/>
+<jc:set scope="request" var="traceLen" value="#{trace.length()}"/>
+<h:outputText value="#{trace.substring(0, traceLen gt 570 ? 570 : traceLen)}"
+              style="white-space:pre-wrap;" escape="false"/><br/>
+<h:form>
+<p:remoteCommand process="@this" autoRun="true"
+                 actionListener="#{applicationHolder.clearPfExceptionHandler()}"
+                 update="@none"/>
+</h:form>
+</p:outputPanel>
+</p:dialog>
+</ui:composition>
+</body>
+</html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Sitemap: https://eatlog.ru/sitemap.xml
+Host: https://eatlog.ru
