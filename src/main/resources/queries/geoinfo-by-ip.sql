@@ -16,3 +16,4 @@ join {0}.country on city.country_id = country.id
 left join {0}.subdivision1 subdivision1 on city.subdivision1_id = subdivision1.id
 left join {0}.subdivision2 subdivision2 on city.subdivision2_id = subdivision2.id
 where {0}.city.geoname_id = find_geoname_id_by_ip({1})
+limit 1
