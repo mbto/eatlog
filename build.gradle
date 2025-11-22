@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.mbto.eatlog"
-version = "1.0"
+version = "1.1"
 
 apply plugin: 'java'
 apply plugin: 'idea'
