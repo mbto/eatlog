@@ -5,5 +5,3 @@ out
 build/
 out/
 *.iml
-eatlog-*.sql
-

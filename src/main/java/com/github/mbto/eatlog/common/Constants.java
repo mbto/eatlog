@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public interface Constants {
@@ -42,13 +41,6 @@ public interface Constants {
             "city", "country", "ipv4", "subdivision1", "subdivision2")
             .map(DSL::val)
             .toList();
-
-    String LOCK_GEO_TABLES_STATEMENT = "LOCK TABLES "
-            + GEO_TABLES_NAMES.stream()
-                .map(tableNameParam -> "`" + GEO_SCHEMA_NAME + "`.`" + tableNameParam.getName() + "` READ")
-                .collect(Collectors.joining(","));
-
-    String UNLOCK_TABLES_STATEMENT = "UNLOCK TABLES";
 
     Function<Setting, TreeSet<String>> settingRolesGetterFunc = Setting::getRoles;
     BiConsumer<Setting, TreeSet<String>> settingRolesSetterFunc = Setting::setRoles;

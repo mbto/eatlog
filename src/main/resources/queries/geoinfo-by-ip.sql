@@ -15,6 +15,4 @@ join {0}.city on ipv4.v_geoname_id = city.geoname_id
 join {0}.country on city.country_id = country.id
 left join {0}.subdivision1 subdivision1 on city.subdivision1_id = subdivision1.id
 left join {0}.subdivision2 subdivision2 on city.subdivision2_id = subdivision2.id
-where inet_aton({1}) between ipv4.start_int and ipv4.last_int
-ORDER BY ipv4.last_int
-limit 1
+where {0}.city.geoname_id = find_geoname_id_by_ip({1})

@@ -101,31 +101,21 @@ public class CacheService {
         long fetchStartedAt = System.currentTimeMillis();
         Map<UInteger, GeoInfo> geoInfoByGeonameId = null;
         try {
-            geoInfoByGeonameId = eatlogDsl.transactionResult(config -> {
-                DSLContext transactionalDsl = DSL.using(config);
-                if (!applicationHolder.isGeoInfoAvailable(transactionalDsl, log.isDebugEnabled())) {
-                    return null;
-                }
-                try {
-                    transactionalDsl.execute(LOCK_GEO_TABLES_STATEMENT);
-                    Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
-                    return transactionalDsl
-                            .resultQuery(queryByFilename.get("geoinfo-by-geoname_ids"),
-                                    DSL.table(GEO_SCHEMA_NAME),
-                                    DSL.list(geonameIds.stream()
-                                            .map(DSL::val)
-                                            .toList()))
-                            .queryTimeout(queryTimeout)
-                            .fetchMap(r -> r.get("geoname_id", UInteger.class),
-                                    new GeoInfoMapper(applicationHolder
-                                            .getLocaleSettingsByAvailableLocale()
-                                            .keySet()));
-                } finally {
-                    try {
-                        transactionalDsl.execute(UNLOCK_TABLES_STATEMENT);
-                    } catch (Throwable ignored) {}
-                }
-            });
+            if (!applicationHolder.isGeoInfoAvailable(eatlogDsl, log.isDebugEnabled())) {
+                return null;
+            }
+            Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
+            geoInfoByGeonameId = eatlogDsl
+                    .resultQuery(queryByFilename.get("geoinfo-by-geoname_ids"),
+                            DSL.table(GEO_SCHEMA_NAME),
+                            DSL.list(geonameIds.stream()
+                                    .map(DSL::val)
+                                    .toList()))
+                    .queryTimeout(queryTimeout)
+                    .fetchMap(r -> r.get("geoname_id", UInteger.class),
+                            new GeoInfoMapper(applicationHolder
+                                    .getLocaleSettingsByAvailableLocale()
+                                    .keySet()));
         } catch (Throwable e) {
             log.warn("Failed fetch GeoInfo by geonameIds=" + geonameIds, e);
         }
@@ -199,28 +189,18 @@ public class CacheService {
         long fetchStartedAt = System.currentTimeMillis();
         GeoInfo geoInfo;
         try {
-            geoInfo = eatlogDsl.transactionResult(config -> {
-                DSLContext transactionalDsl = DSL.using(config);
-                if(!applicationHolder.isGeoInfoAvailable(transactionalDsl, log.isDebugEnabled())) {
-                    return null;
-                }
-                try {
-                    transactionalDsl.execute(LOCK_GEO_TABLES_STATEMENT);
-                    Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
-                    return transactionalDsl
-                            .resultQuery(queryByFilename.get("geoinfo-by-ip"),
-                                    DSL.table(GEO_SCHEMA_NAME),
-                                    DSL.val(ip))
-                            .queryTimeout(queryTimeout)
-                            .fetchOne(new GeoInfoMapper(applicationHolder
-                                    .getLocaleSettingsByAvailableLocale()
-                                    .keySet()));
-                } finally {
-                    try {
-                        transactionalDsl.execute(UNLOCK_TABLES_STATEMENT);
-                    } catch (Throwable ignored) {}
-                }
-            });
+            if(!applicationHolder.isGeoInfoAvailable(eatlogDsl, log.isDebugEnabled())) {
+                return null;
+            }
+             Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
+             geoInfo = eatlogDsl
+                     .resultQuery(queryByFilename.get("geoinfo-by-ip"),
+                             DSL.table(GEO_SCHEMA_NAME),
+                             DSL.val(ip))
+                     .queryTimeout(queryTimeout)
+                     .fetchOne(new GeoInfoMapper(applicationHolder
+                             .getLocaleSettingsByAvailableLocale()
+                             .keySet()));
         } catch (Throwable e) {
             long fetchDuration = System.currentTimeMillis() - fetchStartedAt;
             log.warn("Failed fetch GeoInfo by ip=" + ip

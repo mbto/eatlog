@@ -1,0 +1,11 @@
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe" -u root --password=root --databases eatlog --add-drop-database --add-drop-trigger --events --routines --single-transaction --no-autocommit | sed 's/ AUTO_INCREMENT=[0-9]*//g' > "C:\Users\user\IdeaProjects\eatlog\eatlog.sql"
+
+DROP DATABASE `eatlog`;
+
+CREATE DATABASE `eatlog` CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
+
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root --password=root --comments eatlog < "C:\Users\user\IdeaProjects\eatlog\eatlog.sql"
+
+mysqldump -u root --databases eatlog --add-drop-database --add-drop-trigger --events --routines --single-transaction --no-autocommit | sed 's/ AUTO_INCREMENT=[0-9]*//g' > "/root/eatlog.sql"
+
+mysql -u root --comments < "/root/eatlog.sql"

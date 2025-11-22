@@ -93,6 +93,7 @@ tasks {
     bootJar {
         exclude("application.properties")
         exclude("application-dev.properties")
+        setArchiveFileName("eatlog.jar")
     }
     test {
         maxParallelForks = Runtime.getRuntime().availableProcessors()
