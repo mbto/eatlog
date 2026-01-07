@@ -16,7 +16,7 @@ import org.jooq.types.UInteger;
 /**
  * bju and kkal values: per 100 gram
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Product implements Serializable {
 
     private static final long serialVersionUID = 1L;

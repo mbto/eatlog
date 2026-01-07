@@ -13,12 +13,16 @@ import jakarta.faces.validator.ValidatorException;
 public class TextEditorNotBlankValidator implements Validator<String> {
     @Override
     public void validate(FacesContext context, UIComponent component, String value) throws ValidatorException {
-        if(value == null)
+        if(value == null) {
             throwValidatorException(value);
-        if(value.length() >= 7)
+        }
+        String originalValue = value;
+        if(value.length() >= 7) {
             value = value.substring(3, value.length() - 4); // <p>value</p>
-        if(StringUtils.isBlank(value))
-            throwValidatorException(value);
+        }
+        if(StringUtils.isBlank(value)) {
+            throwValidatorException(originalValue);
+        }
     }
 
     private void throwValidatorException(String value) {

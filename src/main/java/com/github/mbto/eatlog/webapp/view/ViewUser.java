@@ -2,8 +2,11 @@ package com.github.mbto.eatlog.webapp.view;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.mbto.eatlog.common.custommodel.InternalAccount;
+import com.github.mbto.eatlog.common.dto.IpWrapper;
 import com.github.mbto.eatlog.service.ApplicationHolder;
 import com.github.mbto.eatlog.service.CacheService;
+import com.github.mbto.eatlog.service.MaxMindDbService;
+import com.github.mbto.eatlog.utils.QueriesCache;
 import com.github.mbto.eatlog.webapp.session.SessionAccount;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -21,7 +24,6 @@ import org.primefaces.model.FilterMeta;
 import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortMeta;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -30,8 +32,8 @@ import java.util.*;
 
 import static com.github.mbto.eatlog.common.Constants.*;
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Account.ACCOUNT;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.*;
 import static com.github.mbto.eatlog.service.CacheService.*;
+import static com.github.mbto.eatlog.utils.ProjectUtils.*;
 import static com.github.mbto.eatlog.webapp.WebUtils.msgFromBundle;
 import static com.github.mbto.eatlog.webapp.WebUtils.updateSameAccountsInSessionsAndAddMsg;
 import static jakarta.faces.application.FacesMessage.SEVERITY_INFO;
@@ -55,6 +57,8 @@ public class ViewUser implements Serializable {
     private DSLContext eatlogDsl;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private MaxMindDbService maxMindDbService;
 
     @Getter
     private LazyDataModel<InternalAccount> childsLazyModel;
@@ -84,29 +88,21 @@ public class ViewUser implements Serializable {
                             + ", limit=" + limit
                             + ", getRowCount()=" + getRowCount());
                 }
-                Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
                 List<InternalAccount> childs = eatlogDsl.resultQuery(
-                        queryByFilename.get("all-accounts-with-weights_json"),
+                        QueriesCache.get("all-accounts-with-weights_json"),
                         null,
                             DSL.val(offset),
                             DSL.val(limit)
                         ).fetchInto(InternalAccount.class);
-                Set<UInteger> unresolvedGeonameIds = null;
-                for (InternalAccount child : childs) {
-                    child.calcRoles();
-                    child.setupWeightChart(objectMapper);
-                    UInteger geonameId = child.getGeonameId();
-                    if(geonameId == null)
-                        continue;
-                    if(!cacheService.itemExists(geoInfoByGeonameIdCache, geonameId)) {
-                        if(unresolvedGeonameIds == null)
-                            unresolvedGeonameIds = new HashSet<>();
-                        unresolvedGeonameIds.add(geonameId);
-                    }
-                }
-                if(!CollectionUtils.isEmpty(unresolvedGeonameIds)) {
-                    cacheService.getGeoInfoByGeonameIdMap(unresolvedGeonameIds, true);
-                }
+                List<IpWrapper> ipWrappers = childs.stream()
+                        .peek(child -> {
+                            child.getIpWrapper().setIp(child.getIp());
+                            child.calcRoles();
+                            child.setupWeightChart(objectMapper);
+                        })
+                        .map(InternalAccount::getIpWrapper)
+                        .toList();
+                maxMindDbService.fillIpWrappersWithGeoInfos(ipWrappers, false);
                 return childs;
             }
             @Override
@@ -138,16 +134,18 @@ public class ViewUser implements Serializable {
                         .orElse(null);
                 if(child != null)
                     return selectedChild = child;
-                String query = applicationHolder.getQueryByFilename().get("all-accounts-with-weights_json");
-                child = eatlogDsl.resultQuery(query,
+                child = eatlogDsl.resultQuery(
+                        QueriesCache.get("all-accounts-with-weights_json"),
                         DSL.val(rowKey),
                         DSL.val(0),
                         DSL.val(1)
                 ).fetchOneInto(InternalAccount.class);
                 if(child == null)
                     throw new IllegalStateException(msgFromBundle("unable.find.account", rowKey));
+                child.getIpWrapper().setIp(child.getIp());
                 child.calcRoles();
                 child.setupWeightChart(objectMapper);
+                maxMindDbService.fillIpWrappersWithGeoInfos(List.of(child.getIpWrapper()), false);
                 return selectedChild = child;
             }
         };
@@ -182,10 +180,11 @@ public class ViewUser implements Serializable {
         PrimeFaces pf = PrimeFaces.current();
         localChangesCounter = 0;
         try {
+            TreeSet<String> rolesSet = convertRolesToNullIfEmpty(selectedChild);
             localChangesCounter = pointwiseUpdateQuery(eatlogDsl, ACCOUNT.ID, selectedChild.getId(),
                     Arrays.asList(
                             Pair.of(ACCOUNT.NAME, selectedChild.getName()),
-                            Pair.of(ACCOUNT.ROLES, convertRolesToNullIfEmpty(selectedChild)),
+                            Pair.of(ACCOUNT.ROLES, rolesSet != null ? new TreeSet<>(rolesSet) : null),
                             Pair.of(ACCOUNT.IS_BANNED, convertIsBannedToNullIfFalse(selectedChild)),
                             Pair.of(ACCOUNT.BANNED_REASON, selectedChild.getBannedReason())
                     )
@@ -205,7 +204,8 @@ public class ViewUser implements Serializable {
                     sessionAccount.getInternalAccount().getCalcedRoles(),
                     dialogMsgs,
                     applicationHolder.getSiteVisitorBySessionId());
-            cacheService.evict(hoursCache, allocateSiteVisitorsKey); // for resort siteVisitorsOutputPanelId after name changed
+            cacheService.evict(siteVisitorsCache, allocateSiteVisitorsKey);
+            // for resort siteVisitorsOutputPanelId after name changed
         }
         selectedChild = null;
         pf.ajax().update(editChildsForm_childsTable, msgs);

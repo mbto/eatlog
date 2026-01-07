@@ -1,4 +1,4 @@
-package com.github.mbto.eatlog.common.utils;
+package com.github.mbto.eatlog.utils;
 
 import org.jooq.types.UInteger;
 

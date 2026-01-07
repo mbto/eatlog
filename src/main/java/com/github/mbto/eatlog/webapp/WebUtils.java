@@ -3,25 +3,40 @@ package com.github.mbto.eatlog.webapp;
 import com.github.mbto.eatlog.common.custommodel.InternalAccount;
 import com.github.mbto.eatlog.common.dto.CalcedRoles;
 import com.github.mbto.eatlog.common.dto.SiteVisitor;
+import com.github.mbto.eatlog.utils.ProjectUtils;
 import com.github.mbto.eatlog.webapp.session.SessionAccount;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.validator.ValidatorException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.Manager;
 import org.apache.catalina.Session;
 import org.apache.catalina.session.StandardSession;
 import org.apache.catalina.session.StandardSessionFacade;
-import org.primefaces.model.charts.ChartData;
-import org.primefaces.model.charts.axes.cartesian.CartesianScales;
-import org.primefaces.model.charts.axes.cartesian.linear.CartesianLinearAxes;
-import org.primefaces.model.charts.line.LineChartDataSet;
-import org.primefaces.model.charts.line.LineChartModel;
-import org.primefaces.model.charts.line.LineChartOptions;
-import org.primefaces.model.charts.optionconfig.title.Title;
+import org.apache.commons.lang3.StringUtils;
+import org.primefaces.extensions.component.legend.Legend;
 import org.springframework.util.CollectionUtils;
+import software.xdev.chartjs.model.charts.Chart;
+import software.xdev.chartjs.model.charts.LineChart;
+import software.xdev.chartjs.model.color.RGBAColor;
+import software.xdev.chartjs.model.data.LineData;
+import software.xdev.chartjs.model.dataset.LineDataset;
+import software.xdev.chartjs.model.enums.ScalesPosition;
+import software.xdev.chartjs.model.options.Font;
+import software.xdev.chartjs.model.options.LineOptions;
+import software.xdev.chartjs.model.options.Plugins;
+import software.xdev.chartjs.model.options.Title;
+import software.xdev.chartjs.model.options.elements.Fill;
+import software.xdev.chartjs.model.options.scale.Scales;
+import software.xdev.chartjs.model.options.scale.cartesian.CartesianScaleOptions;
+import software.xdev.chartjs.model.options.scale.cartesian.linear.LinearScaleOptions;
 
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -30,7 +45,7 @@ import java.util.stream.Collectors;
 
 import static com.github.mbto.eatlog.common.Constants.DDMMYYYY_PATTERN;
 import static com.github.mbto.eatlog.common.Constants.msgs;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.*;
+import static com.github.mbto.eatlog.utils.ProjectUtils.*;
 import static com.github.mbto.eatlog.webapp.DependentUtil.humanLifetime;
 import static com.github.mbto.eatlog.webapp.enums.RoleEnum.rolesContainerCreatorFunc;
 import static jakarta.faces.application.FacesMessage.SEVERITY_INFO;
@@ -54,14 +69,42 @@ public class WebUtils {
                 details));
     }
 
+    public static String getBaseUrl() {
+        ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+        HttpServletRequest req = (HttpServletRequest) ec.getRequest();
+        String scheme = req.getScheme();
+        String host = req.getServerName();
+        int port = req.getServerPort();
+        String ctx = req.getContextPath();
+        StringBuilder sb = new StringBuilder(scheme).append("://").append(host);
+        if ((scheme.equals("http") && port != 80) || (scheme.equals("https") && port != 443)) {
+            sb.append(':').append(port);
+        }
+        sb.append(ctx);
+        return sb.toString();
+    }
+
+    public static String extractIpFromFacesContext() {
+        FacesContext fc = FacesContext.getCurrentInstance();
+        ExternalContext ec = fc.getExternalContext();
+        String ip = ec.getRequestHeaderMap().get("X-Real-IP"); // nginx
+        if(StringUtils.isBlank(ip)) {
+            HttpServletRequest req = (HttpServletRequest) ec.getRequest();
+            ip = req.getRemoteAddr();
+        }
+//        return "2.26.21.128"; // todo: for tests
+        return ip;
+    }
+
     public static boolean sendRedirectInternal(String redirectUrl) {
         FacesContext fc = FacesContext.getCurrentInstance();
-        ExternalContext exCtx = fc.getExternalContext();
-        redirectUrl = exCtx.getRequestContextPath() + "/" + redirectUrl;
-        if (log.isDebugEnabled())
+        ExternalContext ec = fc.getExternalContext();
+        redirectUrl = ec.getRequestContextPath() + "/" + redirectUrl;
+        if (log.isDebugEnabled()) {
             log.debug("\nsendRedirectInternal result redirectUrl=" + redirectUrl);
+        }
         try {
-            exCtx.redirect(redirectUrl);
+            ec.redirect(redirectUrl);
             return true;
         } catch (Throwable e) {
             String msg = "Failed redirect to redirectUrl=" + redirectUrl;
@@ -73,6 +116,25 @@ public class WebUtils {
         }
     }
 
+    public static boolean sendRedirect(String redirectUrl) {
+        FacesContext fc = FacesContext.getCurrentInstance();
+        ExternalContext ec = fc.getExternalContext();
+        if (log.isDebugEnabled()) {
+            log.debug("\nsendRedirect result redirectUrl=" + redirectUrl);
+        }
+        try {
+            ec.redirect(redirectUrl);
+            return true;
+        } catch (Throwable e) {
+            String msg = "Failed redirect to redirectUrl=" + redirectUrl;
+            log.warn(msg, e);
+//            fc.addMessage(msgs, new FacesMessage(FacesMessage.SEVERITY_WARN, msg, ""));
+            return false;
+        } finally {
+            fc.responseComplete();
+        }
+    }
+    /*
     public static LineChartModel generateLineChartModelWithLocalDateLabels(
             Map<LocalDate, ? extends Number> valueNumberByDateLabel,
             String legend, String titleText) {
@@ -153,6 +215,89 @@ public class WebUtils {
         cartesianLinerModel.setData(chartData);
         cartesianLinerModel.setOptions(options);
         return cartesianLinerModel;
+    }
+    */
+
+    public static String generateLineChartModelWithLocalDateLabels(
+            Map<LocalDate, ? extends Number> valueNumberByDateLabel,
+            String legend, String titleText) {
+
+        if (valueNumberByDateLabel == null || valueNumberByDateLabel.size() < 2) {
+            return null;
+        }
+        Map<String, Number> valueNumberByLabel = valueNumberByDateLabel.entrySet()
+            .stream()
+            .collect(Collectors.toMap(
+                e -> e.getKey().format(DDMMYYYY_PATTERN),
+                Map.Entry::getValue,
+                (num1, num2) -> {
+                    throw new IllegalStateException("Dublicate keys founded with num1=" + num1 + ", num2=" + num2);
+                },
+                LinkedHashMap::new));
+        return generateLineChartModelWithStringLabels(valueNumberByLabel, legend, titleText);
+    }
+
+    public static String generateLineChartModelWithStringLabels(
+            Map<String, ? extends Number> valueNumberByLabel,
+            String legend, String titleText) {
+        if (valueNumberByLabel == null || valueNumberByLabel.size() < 2) {
+            return null;
+        }
+        Collection<? extends Number> values = valueNumberByLabel.values();
+        LineDataset dataset = new LineDataset()
+                .setLabel(msgFromBundle("weight.named", legend))
+                .setYAxisID("left-y-axis")
+                .setFill(Boolean.TRUE)
+                .setBackgroundColor(new RGBAColor(255, 200, 200, 0.2))
+                .setPointBackgroundColor(List.of(new RGBAColor(0, 162, 0)))
+                .setTension(0.5f)
+                .setData(new ArrayList<>(values))
+                ;
+        LineData lineData = new LineData()
+                .setLabels(new ArrayList<>(valueNumberByLabel.keySet()))
+                .addDataset(dataset)
+                ;
+        Number min = values.stream().min(numberComparator).orElse(null);
+        Number max = values.stream().max(numberComparator).orElse(null);
+        CartesianScaleOptions leftScale = new CartesianScaleOptions()
+//                .setId("left-y-axis")
+                .setPosition(ScalesPosition.LEFT)
+                .setMin(min)
+                .setMax(max);
+
+        CartesianScaleOptions rightScale = new CartesianScaleOptions()
+//                .setId("right-y-axis")
+                .setPosition(ScalesPosition.RIGHT)
+                .setMin(min)
+                .setMax(max);
+
+//        Scales scales = new Scales().addYAxes(leftScale, rightScale);
+        Scales scales = new Scales();
+        scales
+                .addScale(Scales.ScaleAxis.Y, leftScale)
+                .addScale(Scales.ScaleAxis.Y, rightScale)
+        ;
+
+        /* 4. title */
+        Title title = null;
+        if(titleText != null) {
+            title = new Title().setDisplay(true)
+                    .setText(titleText)
+                    .setFont(new Font()
+                            .setSize(15)
+                    ).setColor(new RGBAColor(0, 0, 0))
+            ;
+        }
+        LineOptions options = new LineOptions()
+                .setScales(scales)
+                .setPlugins(new Plugins()
+                        .setTitle(title)
+                )
+//                .setSpanGaps(true)
+                .setResponsive(true)
+                .setMaintainAspectRatio(false)
+                ;
+        return new LineChart(lineData, options).toJson();
     }
 
     public static Object extractStandardSessionFacadeObject() {

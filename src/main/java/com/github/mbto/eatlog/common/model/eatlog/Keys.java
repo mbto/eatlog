@@ -30,14 +30,14 @@ import org.jooq.impl.Internal;
  * A class modelling foreign key relationships and constraints of tables in
  * eatlog.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Keys {
 
     // -------------------------------------------------------------------------
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
-    public static final UniqueKey<AccountRecord> KEY_ACCOUNT_GOOGLE_SUB = Internal.createUniqueKey(Account.ACCOUNT, DSL.name("KEY_account_google_sub"), new TableField[] { Account.ACCOUNT.GOOGLE_SUB }, true);
+    public static final UniqueKey<AccountRecord> KEY_ACCOUNT_GOOGLE_SUB = Internal.createUniqueKey(Account.ACCOUNT, DSL.name("KEY_account_google_sub"), new TableField[] { Account.ACCOUNT.SITE_AUTH_YANDEXID }, true);
     public static final UniqueKey<AccountRecord> KEY_ACCOUNT_PRIMARY = Internal.createUniqueKey(Account.ACCOUNT, DSL.name("KEY_account_PRIMARY"), new TableField[] { Account.ACCOUNT.ID }, true);
     public static final UniqueKey<ConsumedRecord> KEY_CONSUMED_PRIMARY = Internal.createUniqueKey(Consumed.CONSUMED, DSL.name("KEY_consumed_PRIMARY"), new TableField[] { Consumed.CONSUMED.ID }, true);
     public static final UniqueKey<LimitationRecord> KEY_LIMITATION_PRIMARY = Internal.createUniqueKey(Limitation.LIMITATION, DSL.name("KEY_limitation_PRIMARY"), new TableField[] { Limitation.LIMITATION.ID }, true);

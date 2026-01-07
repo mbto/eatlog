@@ -11,10 +11,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-import org.jooq.Field;
 import org.jooq.Record1;
-import org.jooq.Record11;
-import org.jooq.Row11;
 import org.jooq.impl.UpdatableRecordImpl;
 import org.jooq.types.UInteger;
 
@@ -22,8 +19,8 @@ import org.jooq.types.UInteger;
 /**
  * bju and kkal values: per 100 gram
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
-public class ProductRecord extends UpdatableRecordImpl<ProductRecord> implements Record11<UInteger, UInteger, String, Short, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal> {
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
+public class ProductRecord extends UpdatableRecordImpl<ProductRecord> {
 
     private static final long serialVersionUID = 1L;
 
@@ -202,267 +199,6 @@ public class ProductRecord extends UpdatableRecordImpl<ProductRecord> implements
     }
 
     // -------------------------------------------------------------------------
-    // Record11 type implementation
-    // -------------------------------------------------------------------------
-
-    @Override
-    public Row11<UInteger, UInteger, String, Short, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal> fieldsRow() {
-        return (Row11) super.fieldsRow();
-    }
-
-    @Override
-    public Row11<UInteger, UInteger, String, Short, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal> valuesRow() {
-        return (Row11) super.valuesRow();
-    }
-
-    @Override
-    public Field<UInteger> field1() {
-        return Product.PRODUCT.ID;
-    }
-
-    @Override
-    public Field<UInteger> field2() {
-        return Product.PRODUCT.STORE_ID;
-    }
-
-    @Override
-    public Field<String> field3() {
-        return Product.PRODUCT.TITLE;
-    }
-
-    @Override
-    public Field<Short> field4() {
-        return Product.PRODUCT.PORTION_GRAM;
-    }
-
-    @Override
-    public Field<BigDecimal> field5() {
-        return Product.PRODUCT.B;
-    }
-
-    @Override
-    public Field<BigDecimal> field6() {
-        return Product.PRODUCT.J;
-    }
-
-    @Override
-    public Field<BigDecimal> field7() {
-        return Product.PRODUCT.U;
-    }
-
-    @Override
-    public Field<BigDecimal> field8() {
-        return Product.PRODUCT.B_TO_KKAL;
-    }
-
-    @Override
-    public Field<BigDecimal> field9() {
-        return Product.PRODUCT.J_TO_KKAL;
-    }
-
-    @Override
-    public Field<BigDecimal> field10() {
-        return Product.PRODUCT.U_TO_KKAL;
-    }
-
-    @Override
-    public Field<BigDecimal> field11() {
-        return Product.PRODUCT.KKAL;
-    }
-
-    @Override
-    public UInteger component1() {
-        return getId();
-    }
-
-    @Override
-    public UInteger component2() {
-        return getStoreId();
-    }
-
-    @Override
-    public String component3() {
-        return getTitle();
-    }
-
-    @Override
-    public Short component4() {
-        return getPortionGram();
-    }
-
-    @Override
-    public BigDecimal component5() {
-        return getB();
-    }
-
-    @Override
-    public BigDecimal component6() {
-        return getJ();
-    }
-
-    @Override
-    public BigDecimal component7() {
-        return getU();
-    }
-
-    @Override
-    public BigDecimal component8() {
-        return getBToKkal();
-    }
-
-    @Override
-    public BigDecimal component9() {
-        return getJToKkal();
-    }
-
-    @Override
-    public BigDecimal component10() {
-        return getUToKkal();
-    }
-
-    @Override
-    public BigDecimal component11() {
-        return getKkal();
-    }
-
-    @Override
-    public UInteger value1() {
-        return getId();
-    }
-
-    @Override
-    public UInteger value2() {
-        return getStoreId();
-    }
-
-    @Override
-    public String value3() {
-        return getTitle();
-    }
-
-    @Override
-    public Short value4() {
-        return getPortionGram();
-    }
-
-    @Override
-    public BigDecimal value5() {
-        return getB();
-    }
-
-    @Override
-    public BigDecimal value6() {
-        return getJ();
-    }
-
-    @Override
-    public BigDecimal value7() {
-        return getU();
-    }
-
-    @Override
-    public BigDecimal value8() {
-        return getBToKkal();
-    }
-
-    @Override
-    public BigDecimal value9() {
-        return getJToKkal();
-    }
-
-    @Override
-    public BigDecimal value10() {
-        return getUToKkal();
-    }
-
-    @Override
-    public BigDecimal value11() {
-        return getKkal();
-    }
-
-    @Override
-    public ProductRecord value1(UInteger value) {
-        setId(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value2(UInteger value) {
-        setStoreId(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value3(String value) {
-        setTitle(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value4(Short value) {
-        setPortionGram(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value5(BigDecimal value) {
-        setB(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value6(BigDecimal value) {
-        setJ(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value7(BigDecimal value) {
-        setU(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value8(BigDecimal value) {
-        setBToKkal(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value9(BigDecimal value) {
-        setJToKkal(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value10(BigDecimal value) {
-        setUToKkal(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord value11(BigDecimal value) {
-        setKkal(value);
-        return this;
-    }
-
-    @Override
-    public ProductRecord values(UInteger value1, UInteger value2, String value3, Short value4, BigDecimal value5, BigDecimal value6, BigDecimal value7, BigDecimal value8, BigDecimal value9, BigDecimal value10, BigDecimal value11) {
-        value1(value1);
-        value2(value2);
-        value3(value3);
-        value4(value4);
-        value5(value5);
-        value6(value6);
-        value7(value7);
-        value8(value8);
-        value9(value9);
-        value10(value10);
-        value11(value11);
-        return this;
-    }
-
-    // -------------------------------------------------------------------------
     // Constructors
     // -------------------------------------------------------------------------
 
@@ -490,6 +226,7 @@ public class ProductRecord extends UpdatableRecordImpl<ProductRecord> implements
         setJToKkal(jToKkal);
         setUToKkal(uToKkal);
         setKkal(kkal);
+        resetChangedOnNotNull();
     }
 
     /**
@@ -510,6 +247,7 @@ public class ProductRecord extends UpdatableRecordImpl<ProductRecord> implements
             setJToKkal(value.getJToKkal());
             setUToKkal(value.getUToKkal());
             setKkal(value.getKkal());
+            resetChangedOnNotNull();
         }
     }
 }

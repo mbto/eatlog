@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.github.mbto.eatlog.common.Constants.*;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.addDotsForBigString;
+import static com.github.mbto.eatlog.utils.ProjectUtils.addDotsForBigString;
 import static com.github.mbto.eatlog.webapp.WebUtils.msgFromBundle;
 import static jakarta.faces.application.FacesMessage.*;
 

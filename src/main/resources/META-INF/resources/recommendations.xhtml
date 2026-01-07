@@ -9,7 +9,7 @@
       xmlns:o="http://omnifaces.org/ui"
       xmlns:of="http://omnifaces.org/functions">
 <f:metadata>
-    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum"/>
     <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false)}" onPostback="false"/>
     <o:viewAction actionListener="#{requestSetting.fetch(SettingEnum.RECOMMENDATIONS_JSON.key, true, true, null)}" onPostback="false"/>
 </f:metadata>

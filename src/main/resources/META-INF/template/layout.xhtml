@@ -7,17 +7,17 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:pe="http://primefaces.org/ui/extensions"
       xmlns:o="http://omnifaces.org/ui"
-      xmlns:of="http://omnifaces.org/functions"
-      xmlns:jc="jakarta.tags.core">
+      xmlns:of="http://omnifaces.org/functions">
 <h:head>
-    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="robots" content="all"/>
     <meta name="description" content="#{cacheService.allocateSettingByKey(SettingEnum.DESCRIPTION_JSON.key, true, false, null).get(sessionAccount.locale.language)}"/>
     <link rel="shortcut icon" type="image/x-icon" href="#{resource['favicon.ico']}"/>
     <h:outputStylesheet name="static/css/gh-fork-ribbon.min.css" />
-    <h:outputStylesheet name="static/css/default.css" />
-    <title>eatlog - <ui:insert name="title"/></title>
+    <h:outputStylesheet name="static/css/default-v2.css" />
+    <ui:insert name="head"/>
+    <title><ui:insert name="title"/> - eatlog.ru</title>
 </h:head>
 <h:body>
     <a class="github-fork-ribbon right-top" href="https://github.com/mbto/eatlog" data-ribbon="Eatlog on GitHub" title="Eatlog on GitHub" target="_blank"/>
@@ -25,14 +25,14 @@
     <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
         <p:toolbar>
             <p:toolbarGroup>
-                <p:linkButton href="/index#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['calculations']}" icon="pi pi-calculator"/>
-                <p:linkButton href="/stores#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['stores']}" icon="pi pi-sitemap"/>
-                <p:linkButton href="/products#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['products']}" icon="pi pi-cart-plus"/>
-                <p:linkButton href="/limitations#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['limitations']}" icon="pi pi-exclamation-triangle"/>
-                <p:linkButton href="/recommendations#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['recommendations']}" icon="pi pi-info-circle"/>
-                <p:linkButton href="/users#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['users']}" icon="pi pi-users"/>
-                <p:linkButton href="/donate#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['donate']}" icon="pi pi-dollar"/>
-                <p:linkButton href="/settings#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['settings']}" icon="pi pi-cog"
+                <p:linkButton href="index#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['calculations']}" icon="pi pi-calculator"/>
+                <p:linkButton href="stores#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['stores']}" icon="pi pi-sitemap"/>
+                <p:linkButton href="products#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['products']}" icon="pi pi-cart-plus"/>
+                <p:linkButton href="limitations#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['limitations']}" icon="pi pi-exclamation-triangle"/>
+                <p:linkButton href="recommendations#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['recommendations']}" icon="pi pi-info-circle"/>
+                <p:linkButton href="users#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['users']}" icon="pi pi-users"/>
+                <p:linkButton href="donate#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['donate']}" icon="pi pi-dollar"/>
+                <p:linkButton href="settings#{requestParamsHolder.actualRequestParamsMerged}" value="#{l10n['settings']}" icon="pi pi-cog"
                               rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrRedactor}"/>
             </p:toolbarGroup>
             <p:toolbarGroup align="right">
@@ -46,7 +46,7 @@
                                    itemLabel="#{lw.value.label}" itemValue="#{lw.key}"/>
                 </p:selectOneMenu>
                 </h:form>
-                <p:link href="/account#{requestParamsHolder.actualRequestParamsMerged}"
+                <p:link href="account#{requestParamsHolder.actualRequestParamsMerged}"
                         style="margin-right:120px;margin-left:.1em;"
                         rendered="#{sessionAccount.authed}">
                 <p:chip>
@@ -55,16 +55,16 @@
                         <h:graphicImage value="#{resource['static/images/banned.jpg']}"/>
                     </ui:fragment>
                     <ui:fragment rendered="#{!sessionAccount.internalAccount.isBanned}">
-                        <h:graphicImage value="#{sessionAccount.internalAccount.googlePictureUrl}"
-                                        rendered="#{not empty sessionAccount.internalAccount.googlePictureUrl}"/>
-                        <h:graphicImage value="#{resource['static/images/mouse.jpg']}"
-                                        rendered="#{empty sessionAccount.internalAccount.googlePictureUrl}"/>
+                        <h:graphicImage value="#{sessionAccount.internalAccount.siteAvatarUrl}"
+                                        rendered="#{not empty sessionAccount.internalAccount.siteAvatarUrl}"/>
+                        <h:graphicImage value="#{resource['static/images/default.jpg']}"
+                                        rendered="#{empty sessionAccount.internalAccount.siteAvatarUrl}"/>
                     </ui:fragment>
                 </p:avatar>
                 <h:outputText value="#{l10n['account']}" style="font-weight:normal;"/>
                 </p:chip>
                 </p:link>
-                <p:linkButton href="/account#{requestParamsHolder.actualRequestParamsMerged}"
+                <p:linkButton href="account#{requestParamsHolder.actualRequestParamsMerged}"
                               value="#{l10n['account']}" icon="pi pi-user"
                               style="margin-right:120px;margin-left:.1em;"
                               rendered="#{!sessionAccount.authed}"/>
@@ -74,7 +74,7 @@
     <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
         <p:messages id="userStateMsgs" for="userStateMsgs"
                     showDetail="true" skipDetailIfEqualsSummary="true"
-                    style="margin:0 auto;display:table;"/>
+                    style="margin:0 auto;display:table;width:500px;"/>
         <ui:fragment rendered="#{requestParamsHolder.showGoToYourPageLink}">
             <p:link value="#{l10n['go.to.your.page']}" href="#{request.requestURI}" style="margin:0 auto;display:table;"/>
         </ui:fragment>
@@ -88,41 +88,23 @@
     </div>
     </div>
     <noindex>
-    <p:separator />
-    <p:outputPanel id="siteVisitorsOutputPanelId" style="margin-top:10px;white-space:pre-wrap;font-size:smaller;">
-        <jc:set scope="request" var="siteVisitors" value="#{cacheService.allocateSiteVisitors()}"/>
-        <h:outputText value="#{l10n['on.site'] += ' '}"/>
-        <h:outputText
-value="#{dependentUtil.declensionValuedL10N(siteVisitors.guestsCount, 'guest')}"
-rendered="#{siteVisitors.guestsCount gt 0}"/>
-        <h:outputText value=" #{l10n['and']} "
-rendered="#{siteVisitors.guestsCount gt 0 and siteVisitors.authedUsers.size() gt 0}"/>
-        <h:outputText
-value="#{dependentUtil.declensionValuedL10N(siteVisitors.authedUsers.size(), 'user')}: "
-rendered="#{siteVisitors.authedUsers.size() gt 0}"/>
-        <ui:repeat value="#{siteVisitors.authedUsers}" var="siteVisitor" varStatus="varStatus">
-            <h:outputText id="visNameTextId" styleClass="visitorLink" rendered="#{!sessionAccount.authed}"
-value="#{(not empty siteVisitor.geoInfo.emoji ? siteVisitor.geoInfo.emoji += ' ' : '') += siteVisitor.name}"/>
-            <p:link id="visNameLinkId" target="_blank" outcome="index" styleClass="visitorLink" rendered="#{sessionAccount.authed}"
-value="#{(not empty siteVisitor.geoInfo.emoji ? siteVisitor.geoInfo.emoji += ' ' : '') += siteVisitor.name}">
-                <f:param name="id" value="#{siteVisitor.accountId}"/>
-            </p:link>
-            <p:tooltip for="visNameTextId,visNameLinkId">
-                <p:avatar shape="circle" style="display:block;margin:0 auto;width:96px;height:96px;">
-                <ui:fragment rendered="#{siteVisitor.banned}">
-                    <p:graphicImage value="#{resource['static/images/banned.jpg']}"/>
-                </ui:fragment>
-                <ui:fragment rendered="#{!siteVisitor.banned}">
-                    <p:graphicImage srcset="#{siteVisitor.googlePictureUrl}"
-                                    rendered="#{not empty siteVisitor.googlePictureUrl}"/>
-                    <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
-                                    rendered="#{empty siteVisitor.googlePictureUrl}"/>
-                </ui:fragment>
-                </p:avatar><br/>
+    <p:divider style="margin-top:10px;margin-bottom:10px;"/>
+    <p:outputPanel id="siteVisitorsOutputPanelId">
+        <h:outputText value="#{requestSiteVisitors.online}" styleClass="visitorPanel"/>
+        <ui:repeat value="#{requestSiteVisitors.siteVisitors.authedUsers}" var="siteVisitor" varStatus="varStatus">
+            <h:outputText id="visNameTextId" styleClass="visitorLink"
+                          value="#{(not empty siteVisitor.geoInfo.countryEmoji ? siteVisitor.geoInfo.countryEmoji += ' ' : '') += siteVisitor.name}"/>
+            <p:tooltip for="visNameTextId">
+                <p:graphicImage srcset="#{siteVisitor.siteAvatarUrl}"
+                                style="display:block;margin:0 auto;border-radius:50%;"
+                                rendered="#{not empty siteVisitor.siteAvatarUrl}"/>
+                <p:graphicImage value="#{resource['static/images/default.jpg']}"
+                                style="display:block;margin:0 auto;border-radius:50%;"
+                                rendered="#{empty siteVisitor.siteAvatarUrl}"/>
+                <br/>
                 <h:outputText value="#{siteVisitor.name}" styleClass="visitorName"/>
                 <ui:fragment rendered="#{siteVisitor.geoInfo != null}">
-                    <br/><h:outputText escape="false"
-value="#{siteVisitor.geoInfo.buildLocationRaw(sessionAccount.locale, '&lt;br/&gt;', true)}"/>
+                    <br/><h:outputText value="#{siteVisitor.geoInfo.locationByLocaleLanguage(sessionAccount.locale)}"/>
                 </ui:fragment>
             </p:tooltip>
             <h:outputText value=", " rendered="#{!varStatus.last}"/>
@@ -133,8 +115,7 @@ value="#{siteVisitor.geoInfo.buildLocationRaw(sessionAccount.locale, '&lt;br/&gt
     </ui:fragment>
     </noindex>
     <ui:insert name="metrics">
-        <h:outputText value="#{cacheService.allocateSettingByKey(SettingEnum.METRIC_SCRIPTS.key, false, false, null).value}"
-                      escape="false"/>
+        <h:outputText value="#{cacheService.allocateSettingByKey(SettingEnum.METRIC_SCRIPTS.key, false, false, null).value}" escape="false"/>
     </ui:insert>
     <noindex>
     <ui:insert name="excepts">
@@ -142,5 +123,14 @@ value="#{siteVisitor.geoInfo.buildLocationRaw(sessionAccount.locale, '&lt;br/&gt
         <ui:include src="../template/exceptionDialog.xhtml"/>
     </ui:insert>
     </noindex>
+    <p:outputPanel style="text-align:center;" rendered="#{applicationHolder.devEnvironment and sessionAccount.authed}">
+        <h:outputText value="sessionAccount.internalAccount.roles: #{sessionAccount.internalAccount.roles}"/><br/>
+        <h:form>
+            <p:commandButton value="Role none" actionListener="#{sessionAccount.internalAccount.setRole(null)}" process="@this" update="@all"/>
+            <p:commandButton value="Role redactor" actionListener="#{sessionAccount.internalAccount.setRole('redactor')}" process="@this" update="@all"/>
+            <p:commandButton value="Role admin" actionListener="#{sessionAccount.internalAccount.setRole('admin')}" process="@this" update="@all"/>
+            <p:commandButton value="Role owner" actionListener="#{sessionAccount.internalAccount.setRole('owner')}" process="@this" update="@all"/>
+        </h:form>
+    </p:outputPanel>
 </h:body>
 </html>

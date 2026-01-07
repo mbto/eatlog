@@ -14,7 +14,7 @@ import org.jooq.types.UInteger;
 /**
  * Convenience access to all stored procedures and functions in eatlog.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Routines {
 
     /**

@@ -7,7 +7,7 @@ import com.github.mbto.eatlog.common.dto.StoreProduct;
 import com.github.mbto.eatlog.common.dto.WeightLimitation;
 import com.github.mbto.eatlog.common.model.eatlog.tables.pojos.Account;
 import com.github.mbto.eatlog.common.model.eatlog.tables.pojos.Store;
-import com.github.mbto.eatlog.service.ApplicationHolder;
+import com.github.mbto.eatlog.utils.QueriesCache;
 import com.github.mbto.eatlog.webapp.request.RequestParamsHolder;
 import com.github.mbto.eatlog.webapp.vars.VarsMain;
 import jakarta.faces.application.FacesMessage;
@@ -28,7 +28,6 @@ import org.primefaces.component.datalist.DataList;
 import org.primefaces.model.FilterMeta;
 import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortMeta;
-import org.primefaces.model.charts.line.LineChartModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
@@ -48,8 +47,8 @@ import static com.github.mbto.eatlog.common.model.eatlog.tables.Limitation.LIMIT
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Product.PRODUCT;
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Store.STORE;
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Weight.WEIGHT;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.declensionValuedL10N;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.pointwiseUpdateQuery;
+import static com.github.mbto.eatlog.utils.ProjectUtils.declensionValuedL10N;
+import static com.github.mbto.eatlog.utils.ProjectUtils.pointwiseUpdateQuery;
 import static com.github.mbto.eatlog.webapp.WebUtils.*;
 import static jakarta.faces.application.FacesMessage.SEVERITY_INFO;
 import static jakarta.faces.application.FacesMessage.SEVERITY_WARN;
@@ -64,18 +63,16 @@ public class ViewMain implements Serializable {
     @Autowired
     private DSLContext eatlogDsl;
     @Autowired
-    private ApplicationHolder applicationHolder;
-    @Autowired
     private RequestParamsHolder requestParamsHolder;
 
     @Getter
     private Map<UInteger, Store> storeById;
     @Getter
-    private LineChartModel cartesianLinerModel;
+    private String cartesianLinerModel;
 //    @Getter
 //    private String datesRangeString;
     @Getter
-    private LineChartModel datesRangeCartesianLinerModel;
+    private String datesRangeCartesianLinerModel;
     @Getter
     private LazyDataModel<LocalDate> availableDatesLazyModel;
 
@@ -107,7 +104,7 @@ public class ViewMain implements Serializable {
         recalcAvailableDatesCountTotal();
     }
 
-    private LineChartModel recreateCartesianLinerModel(/*List<LocalDate> availableDates*/) {
+    private String recreateCartesianLinerModel(/*List<LocalDate> availableDates*/) {
         if(log.isDebugEnabled())
             log.debug("\nrecreateCartesianLinerModel");
 //        if(availableDates != null && availableDates.size() < 2) {
@@ -236,14 +233,13 @@ rendered="#{viewMain.availableDatesLazyModel.rowIndex == 0 and viewMain.datesRan
     private void fetchVars(LocalDate availableDate, List<LocalDate> availableDates) {
         if (log.isDebugEnabled())
             log.debug("\nfetchVars availableDate=" + availableDate + ", availableDates=" + availableDates);
-        Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
         QueryPart availableDatesCondition = !availableDates.isEmpty()
                 ? DSL.list(availableDates.stream()
                         .map(DSL::val)
                         .collect(Collectors.toList()))
                 : DSL.val((LocalDate) null);
         Map<LocalDate, List<ConsumedProduct>> consumedProductsByDate = eatlogDsl
-                .resultQuery(queryByFilename.get("paginated-consumeds-with-products-by-date[s]"),
+                .resultQuery(QueriesCache.get("paginated-consumeds-with-products-by-date[s]"),
                         getObservedAccount().getId(),
                         availableDate,
                         availableDatesCondition)
@@ -276,7 +272,7 @@ rendered="#{viewMain.availableDatesLazyModel.rowIndex == 0 and viewMain.datesRan
                                  return cp;
                              });
         Map<LocalDate, List<WeightLimitation>> weightLimitationByDate = eatlogDsl
-                .resultQuery(queryByFilename.get("paginated-weights-with-limitations-by-date[s]"),
+                .resultQuery(QueriesCache.get("paginated-weights-with-limitations-by-date[s]"),
                         getObservedAccount().getId(),
                         availableDate,
                         availableDatesCondition)
@@ -423,9 +419,8 @@ rendered="#{viewMain.availableDatesLazyModel.rowIndex == 0 and viewMain.datesRan
         UInteger selectedStoreId = varsMain.getSelectedStoreId();
         if(selectedStoreId == null || storeProductMapByStoreId.get(selectedStoreId) != null)
             return;
-        Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
         Map<UInteger, StoreProduct> storeProductByProductId = eatlogDsl
-                .resultQuery(queryByFilename.get("all-products-with-count(consumeds)-by-store.id"),
+                .resultQuery(QueriesCache.get("all-products-with-count(consumeds)-by-store.id"),
                         getObservedAccount().getId(),
                         selectedStoreId)
                 .fetchMap(r -> r.get(PRODUCT.ID.as("product_id")),

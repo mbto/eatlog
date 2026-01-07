@@ -18,7 +18,7 @@ import org.jooq.impl.Internal;
 /**
  * A class modelling indexes of tables in eatlog.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Indexes {
 
     // -------------------------------------------------------------------------
@@ -28,7 +28,7 @@ public class Indexes {
     public static final Index ACCOUNT_CREATED_AT = Internal.createIndex(DSL.name("created_at"), Account.ACCOUNT, new OrderField[] { Account.ACCOUNT.CREATED_AT }, false);
     public static final Index CONSUMED_DATE = Internal.createIndex(DSL.name("date"), Consumed.CONSUMED, new OrderField[] { Consumed.CONSUMED.DATE }, false);
     public static final Index WEIGHT_DATE = Internal.createIndex(DSL.name("date"), Weight.WEIGHT, new OrderField[] { Weight.WEIGHT.DATE }, false);
-    public static final Index ACCOUNT_GEONAME_ID = Internal.createIndex(DSL.name("geoname_id"), Account.ACCOUNT, new OrderField[] { Account.ACCOUNT.GEONAME_ID }, false);
+    public static final Index ACCOUNT_GEONAME_ID = Internal.createIndex(DSL.name("geoname_id"), Account.ACCOUNT, new OrderField[] { Account.ACCOUNT.IP }, false);
     public static final Index ACCOUNT_LASTAUTH_AT = Internal.createIndex(DSL.name("lastauth_at"), Account.ACCOUNT, new OrderField[] { Account.ACCOUNT.LASTAUTH_AT }, false);
     public static final Index STORE_UPDATED_AT = Internal.createIndex(DSL.name("updated_at"), Store.STORE, new OrderField[] { Store.STORE.UPDATED_AT }, false);
 }

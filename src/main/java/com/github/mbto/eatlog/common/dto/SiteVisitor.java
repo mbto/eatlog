@@ -1,5 +1,6 @@
 package com.github.mbto.eatlog.common.dto;
 
+import com.github.mbto.eatlog.utils.geoip.GeoInfo;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +16,7 @@ public class SiteVisitor {
     private UInteger accountId;
     private String name;
     private boolean isBanned;
-    private String googlePictureUrl;
+    private String siteAvatarUrl;
     /**
      * Using GeoInfo, not geonameId
      * The object is convenient to use in .xhtml templates
@@ -31,7 +32,7 @@ public class SiteVisitor {
         this.accountId = null;
         this.name = null;
         this.isBanned = false;
-        this.googlePictureUrl = null;
+        this.siteAvatarUrl = null;
         this.geoInfo = null;
         this.expiredDateTime = null;
     }

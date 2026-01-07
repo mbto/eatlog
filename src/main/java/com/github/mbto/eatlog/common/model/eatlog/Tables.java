@@ -16,7 +16,7 @@ import com.github.mbto.eatlog.common.model.eatlog.tables.Weight;
 /**
  * Convenience access to all tables in eatlog.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
 
     /**
@@ -40,8 +40,7 @@ public class Tables {
     public static final Product PRODUCT = Product.PRODUCT;
 
     /**
-     * Create OAuth 2.0 client id:
-     * https://console.cloud.google.com/apis/credentials
+     * The table <code>eatlog.setting</code>.
      */
     public static final Setting SETTING = Setting.SETTING;
 

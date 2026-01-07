@@ -29,8 +29,8 @@ import java.util.Map;
 
 import static com.github.mbto.eatlog.common.Constants.*;
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Limitation.LIMITATION;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.declensionValuedL10N;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.pointwiseUpdateQuery;
+import static com.github.mbto.eatlog.utils.ProjectUtils.declensionValuedL10N;
+import static com.github.mbto.eatlog.utils.ProjectUtils.pointwiseUpdateQuery;
 import static com.github.mbto.eatlog.webapp.WebUtils.msgFromBundle;
 import static jakarta.faces.application.FacesMessage.SEVERITY_INFO;
 import static jakarta.faces.application.FacesMessage.SEVERITY_WARN;

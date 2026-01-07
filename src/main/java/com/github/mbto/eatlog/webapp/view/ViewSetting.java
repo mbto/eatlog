@@ -31,8 +31,10 @@ import java.util.TreeSet;
 
 import static com.github.mbto.eatlog.common.Constants.*;
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Setting.SETTING;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.*;
 import static com.github.mbto.eatlog.service.CacheService.objectBySettingKeyCache;
+import static com.github.mbto.eatlog.utils.ProjectUtils.convertRolesToNullIfEmpty;
+import static com.github.mbto.eatlog.utils.ProjectUtils.pointwiseUpdateQuery;
+import static com.github.mbto.eatlog.webapp.DependentUtil.declensionValuedL10N;
 import static com.github.mbto.eatlog.webapp.WebUtils.makeValidatorException;
 import static com.github.mbto.eatlog.webapp.WebUtils.msgFromBundle;
 import static jakarta.faces.application.FacesMessage.SEVERITY_INFO;

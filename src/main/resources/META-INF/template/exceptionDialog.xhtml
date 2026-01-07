@@ -11,7 +11,7 @@
       xmlns:jc="jakarta.tags.core">
 <body>
 <ui:composition>
-<p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+<p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum"/>
 <p:dialog id="expDialog" widgetVar="excWid" header="#{pfExceptionHandler != null ? l10n['error.on.page'] += ' - ' += pfExceptionHandler.type : ''}"
           width="1000" height="600" position="center,center" fitViewport="true" modal="true"
           closeOnEscape="true" visible="#{pfExceptionHandler != null}">

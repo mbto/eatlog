@@ -1,0 +1,113 @@
+# Tuning performance and other properties: https://docs.spring.io/spring-boot/3.5.7/appendix/application-properties/index.html
+logging:
+  level:
+    org.jooq: INFO
+    org.jooq.tools: INFO
+    org.jooq.impl: INFO
+    org.springframework.jdbc: INFO
+    com.github.mbto.eatlog: INFO
+#    org.springframework.cache: INFO
+#    com.github.benmanes.caffeine: INFO
+  logback:
+    rollingpolicy:
+      total-size-cap: 10MB
+
+server:
+  port: 8080
+  servlet:
+    # Context path of the frontend, ending with /
+    # Default is "/" will be http(s)://ip:port/
+    context-path: /
+    session:
+      timeout: 7d
+      persistent: false
+      cookie:
+        max-age: 7d
+  tomcat:
+    # Maximum number of connections that the server accepts and processes at any given time.
+    max-connections: 8192
+    # Maximum size of the HTTP post content.
+    max-http-form-post-size: 2MB
+    # Maximum amount of request body to swallow.
+    max-swallow-size: 2MB
+    threads:
+      # Maximum amount of worker threads.
+      max: 200
+      # Minimum amount of worker threads.
+      min-spare: 10
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+  forward-headers-strategy: native
+
+spring:
+  application:
+    name: eatlog
+  jooq:
+    sql-dialect: mysql
+  web:
+    resources:
+      static-locations: classpath:/static/
+      chain:
+        strategy:
+          content:
+            enabled: true
+  session:
+    timeout: 7d
+  threads:
+    virtual:
+      enabled: false
+  devtools:
+    restart:
+      enabled: false
+
+eatlog:
+  datasource:
+# JDBC Connection URL Syntax: https://dev.mysql.com/doc/connector-j/en/connector-j-reference-jdbc-url-format.html
+    jdbcUrl: jdbc:mysql://127.0.0.1:3306/eatlog
+    schema: eatlog
+    username: eatlog
+    password: eatlog
+    connectionInitSql: set session group_concat_max_len=5000000;
+    maximumPoolSize: 20
+    minimumIdle: 2
+    validationTimeout: 5000
+    idleTimeout: 0
+    maxLifetime: 0
+    connectionTimeout: 5000
+    transactionIsolation: TRANSACTION_REPEATABLE_READ
+    readOnly: false
+# Set other connection properties, if JDBC driver have problems with connection to MySQL:
+# Available properties: https://dev.mysql.com/doc/connector-j/en/connector-j-reference-configuration-properties.html
+#    dataSourceProperties:
+#      serverTimezone: Europe/Moscow
+#      serverTimezone: UTC
+#      allowPublicKeyRetrieval: true
+#      useSSL: false
+
+maxmind:
+  city:
+    mmdb:
+      filepath: /etc/nginx/geoip/GeoLite2-City.mmdb
+
+joinfaces:
+  faces:
+    project-stage: production
+    datetimeconverter-default-timezone-is-system-timezone: true
+    facelets-buffer-size: 65535
+    facelets-skip-comments: true
+    facelets-view-mappings: "*.xhtml"
+    interpret-empty-string-submitted-values-as-null: true
+  mojarra:
+    allowed-http-methods: "*"
+    enable-restore-view11-compatibility: true
+  omnifaces:
+    faces-views-scan-paths: "/*.xhtml/*"
+  primefaces:
+    font-awesome: true
+    submit: partial
+    transform-metadata: true
+    client-side-localisation: true
+    theme: glass-x
+    prime-icons: true

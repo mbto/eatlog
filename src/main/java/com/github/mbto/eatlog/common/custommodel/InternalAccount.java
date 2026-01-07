@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.mbto.eatlog.common.dto.CalcedRoles;
+import com.github.mbto.eatlog.common.dto.IpWrapper;
 import com.github.mbto.eatlog.common.model.eatlog.tables.pojos.Account;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.primefaces.model.charts.line.LineChartModel;
 import org.springframework.util.CollectionUtils;
 
 import java.util.LinkedHashMap;
@@ -22,8 +22,11 @@ import static com.github.mbto.eatlog.webapp.WebUtils.generateLineChartModelWithS
 import static com.github.mbto.eatlog.webapp.enums.RoleEnum.*;
 import static org.apache.commons.lang3.BooleanUtils.toBoolean;
 
-@ToString(callSuper = true)
+@ToString(callSuper = true, exclude = "weights_json")
 public class InternalAccount extends Account {
+    @Getter
+    private final IpWrapper ipWrapper = new IpWrapper();
+
     /* additional fields for custom queries: */
 
     @Getter
@@ -35,7 +38,7 @@ public class InternalAccount extends Account {
     @Getter
     private final CalcedRoles calcedRoles = new CalcedRoles();
     @Getter
-    private LineChartModel weightChart;
+    private String weightChart;
 
     public void calcRoles() {
         TreeSet<String> roles = getRoles();
@@ -108,4 +111,25 @@ public class InternalAccount extends Account {
     public static final BiConsumer<InternalAccount, TreeSet<String>> rolesSetterFunc = InternalAccount::setRoles;
     public static final Function<InternalAccount, Boolean> isBannedGetterFunc = InternalAccount::getIsBanned;
     public static final BiConsumer<InternalAccount, Boolean> isBannedSetterFunc = InternalAccount::setIsBanned;
+
+    public void setRole(String role) {
+        TreeSet<String> roles = getRoles();
+        if(roles == null) {
+            roles = new TreeSet<>();
+            setRoles(roles);
+        }
+        if(role == null) {
+            roles.clear();
+        } else if(role.equals(OWNER.getRoleName())) {
+            roles.clear();
+            roles.add(OWNER.getRoleName());
+        } else if(role.equals(ADMIN.getRoleName())) {
+            roles.clear();
+            roles.add(ADMIN.getRoleName());
+        } else if(role.equals(REDACTOR.getRoleName())) {
+            roles.clear();
+            roles.add(REDACTOR.getRoleName());
+        }
+        calcRoles();
+    }
 }

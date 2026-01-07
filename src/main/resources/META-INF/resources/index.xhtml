@@ -18,9 +18,13 @@
 <p:outputPanel id="datePickerOutputPanelId">
 <h:form>
     <p:datePicker id="datePickerId" value="#{viewMain.newAvailableDate}"
-                  monthNavigator="true" readonlyInput="true" weekCalculator="true"
-                  placeholder="#{l10n['date']}" size="10" pattern="dd.MM.yyyy"
+                  pattern="dd.MM.yyyy"
                   showButtonBar="true"
+                  monthNavigator="true" yearNavigator="true"
+                  selectOtherMonths="true"
+                  yearRange="2020:2120"
+                  readonlyInput="true" weekCalculator="true"
+                  placeholder="#{l10n['date']}" size="10"
                   disabled="#{viewMain.observationWrapper.observation}"/>
     <p:commandButton id="createCalcBtn" value="#{l10n['calc.create']}"
                      process="@this datePickerId"
@@ -33,9 +37,9 @@
 </h:form>
 </p:outputPanel>
 <p:outputPanel id="cartesianOutputPanelId">
-<p:lineChart model="#{viewMain.cartesianLinerModel}"
-             style="width:100%;max-height:300px;"
-             rendered="#{viewMain.cartesianLinerModel != null}"/>
+<p:chart value="#{viewMain.cartesianLinerModel}"
+         style="width:100%;height:300px;"
+         rendered="#{viewMain.cartesianLinerModel != null}"/>
 </p:outputPanel>
 <p:outputPanel id="repeatOutputPanelId">
 <h:form>
@@ -43,13 +47,13 @@
             lazy="true"
             paginator="true" rows="15"
             rowsPerPageTemplate="15,30,50"
-            currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+            currentPageReportTemplate="#{l10n['table.current.page.report.template']}"
             paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
             rendered="#{viewMain.availableDatesLazyModel.rowCount > 0}">
 <p:outputPanel id="datesRangeCartesianOutputPanelId" rendered="#{viewMain.availableDatesLazyModel.rowIndex == 0}">
-<p:lineChart model="#{viewMain.datesRangeCartesianLinerModel}"
-             style="width:100%;max-height:300px;"
-             rendered="#{viewMain.datesRangeCartesianLinerModel != null}"/>
+<p:chart value="#{viewMain.datesRangeCartesianLinerModel}"
+         style="width:100%;height:300px;"
+         rendered="#{viewMain.datesRangeCartesianLinerModel != null}"/>
 </p:outputPanel>
 <p:panelGrid id="panelGridInDataListId" columns="1" style="margin-top:10px;">
     <f:facet name="header">

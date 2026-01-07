@@ -1,32 +1,26 @@
 package com.github.mbto.eatlog.service;
 
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
-import com.github.mbto.eatlog.common.dto.GeoInfo;
 import com.github.mbto.eatlog.common.dto.SiteVisitor;
 import com.github.mbto.eatlog.common.dto.SiteVisitors;
-import com.github.mbto.eatlog.common.mapper.GeoInfoMapper;
 import com.github.mbto.eatlog.common.model.eatlog.tables.pojos.Account;
 import com.github.mbto.eatlog.common.model.eatlog.tables.pojos.Setting;
-import com.github.mbto.eatlog.common.utils.DefaultContainerFactory;
+import com.github.mbto.eatlog.utils.DefaultContainerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 import org.jooq.tools.json.JSONParser;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.github.mbto.eatlog.common.Constants.*;
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Account.ACCOUNT;
 import static com.github.mbto.eatlog.common.model.eatlog.tables.Setting.SETTING;
 
@@ -35,11 +29,9 @@ import static com.github.mbto.eatlog.common.model.eatlog.tables.Setting.SETTING;
 @Lazy(false)
 @Slf4j
 public class CacheService {
-    public static final String geoInfoByGeonameIdCache = "geoInfoByGeonameIdCache";
-    public static final String geonameIdByIpCache = "geonameIdByIpCache";
     public static final String objectBySettingKeyCache = "objectBySettingKeyCache";
     public static final String observedAccountByIdCache = "observedAccountByIdCache";
-    public static final String hoursCache = "hoursCache";
+    public static final String siteVisitorsCache = "siteVisitorsCache";
     public static final String allocateSiteVisitorsKey = "allocateSiteVisitors";
 
     @Autowired
@@ -49,12 +41,7 @@ public class CacheService {
     @Autowired
     private CacheManager cacheManager;
 
-    @Value("${eatlog.datasource.fetchForCache.queryTimeoutSec:#{100}}")
-    private int queryTimeout;
-    @Value("${eatlog.datasource.fetchForCache.durationExceedingLimitForLogMillis:#{1000}}")
-    private int durationExceedingLimitForLogMillis;
-
-    @Cacheable(cacheNames = hoursCache, key = "#root.methodName", sync = true)
+    @Cacheable(cacheNames = siteVisitorsCache, key = "#root.methodName", sync = true)
     public SiteVisitors allocateSiteVisitors() {
         if(log.isDebugEnabled())
             log.debug("\nallocateSiteVisitors");
@@ -78,68 +65,6 @@ public class CacheService {
                 .sorted(Comparator.comparing(SiteVisitor::getName, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
         return new SiteVisitors(authedUsers, guestsCount[0]);
-    }
-
-    @Cacheable(cacheNames = geoInfoByGeonameIdCache, key = "#geonameId",
-            condition = "#geonameId != null", sync = true)
-    public GeoInfo allocateGeoInfoByGeonameId(UInteger geonameId) {
-        if(log.isDebugEnabled())
-            log.debug("\nallocateGeoInfoByGeonameId geonameId=" + geonameId);
-        Set<UInteger> unresolvedGeonameIds = new HashSet<>(1, 1f);
-        unresolvedGeonameIds.add(geonameId);
-        Map<UInteger, GeoInfo> geoInfoByGeonameId = getGeoInfoByGeonameIdMap(unresolvedGeonameIds, false);
-        if(CollectionUtils.isEmpty(geoInfoByGeonameId))
-            return null;
-        return geoInfoByGeonameId.get(geonameId);
-    }
-
-    public Map<UInteger, GeoInfo> getGeoInfoByGeonameIdMap(Set<UInteger> geonameIds, boolean cacheResults) {
-        if(log.isDebugEnabled())
-            log.debug("\npreCacheGeoInfosByGeonameIds geonameIds=" + geonameIds + ", cacheResults=" + cacheResults);
-        if(CollectionUtils.isEmpty(geonameIds))
-            return null;
-        long fetchStartedAt = System.currentTimeMillis();
-        Map<UInteger, GeoInfo> geoInfoByGeonameId = null;
-        try {
-            if (!applicationHolder.isGeoInfoAvailable(eatlogDsl, log.isDebugEnabled())) {
-                return null;
-            }
-            Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
-            geoInfoByGeonameId = eatlogDsl
-                    .resultQuery(queryByFilename.get("geoinfo-by-geoname_ids"),
-                            DSL.table(GEO_SCHEMA_NAME),
-                            DSL.list(geonameIds.stream()
-                                    .map(DSL::val)
-                                    .toList()))
-                    .queryTimeout(queryTimeout)
-                    .fetchMap(r -> r.get("geoname_id", UInteger.class),
-                            new GeoInfoMapper(applicationHolder
-                                    .getLocaleSettingsByAvailableLocale()
-                                    .keySet()));
-        } catch (Throwable e) {
-            log.warn("Failed fetch GeoInfo by geonameIds=" + geonameIds, e);
-        }
-        long fetchDuration = System.currentTimeMillis() - fetchStartedAt;
-        if(fetchDuration >= durationExceedingLimitForLogMillis) {
-            log.warn("Slow fetching GeoInfo by geonameIds=" + geonameIds
-                    + ", fetchDuration=" + fetchDuration + "ms");
-        }
-        if(!cacheResults)
-            return geoInfoByGeonameId;
-        CaffeineCache cache = getCache(geoInfoByGeonameIdCache);
-        if(!CollectionUtils.isEmpty(geoInfoByGeonameId)) {
-            for (Map.Entry<UInteger, GeoInfo> entry : geoInfoByGeonameId.entrySet()) {
-                UInteger geonameId = entry.getKey();
-                cache.put(geonameId, entry.getValue());
-                geonameIds.remove(geonameId);
-            }
-        }
-        for (UInteger geonameId : geonameIds) {
-            if(cache.get(geonameId) == null) {
-                cache.put(geonameId, null);
-            }
-        }
-        return geoInfoByGeonameId;
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -181,47 +106,8 @@ public class CacheService {
         return caffeineCache;
     }
 
-    @Cacheable(cacheNames = geonameIdByIpCache, key = "#ip",
-            condition = "#ip != null", sync = true)
-    public UInteger allocateGeonameIdByIp(String ip) {
-        if(log.isDebugEnabled())
-            log.debug("\nallocateGeonameIdByIp ip=" + ip);
-        long fetchStartedAt = System.currentTimeMillis();
-        GeoInfo geoInfo;
-        try {
-            if(!applicationHolder.isGeoInfoAvailable(eatlogDsl, log.isDebugEnabled())) {
-                return null;
-            }
-             Map<String, String> queryByFilename = applicationHolder.getQueryByFilename();
-             geoInfo = eatlogDsl
-                     .resultQuery(queryByFilename.get("geoinfo-by-ip"),
-                             DSL.table(GEO_SCHEMA_NAME),
-                             DSL.val(ip))
-                     .queryTimeout(queryTimeout)
-                     .fetchOne(new GeoInfoMapper(applicationHolder
-                             .getLocaleSettingsByAvailableLocale()
-                             .keySet()));
-        } catch (Throwable e) {
-            long fetchDuration = System.currentTimeMillis() - fetchStartedAt;
-            log.warn("Failed fetch GeoInfo by ip=" + ip
-                    + ", fetchDuration=" + fetchDuration + "ms", e);
-            return null;
-        }
-        long fetchDuration = System.currentTimeMillis() - fetchStartedAt;
-        if(fetchDuration >= durationExceedingLimitForLogMillis) {
-            log.warn("Slow fetching GeoInfo by ip=" + ip
-                    + ", fetchDuration=" + fetchDuration + "ms");
-        }
-        if(geoInfo != null) {
-            UInteger geonameId = geoInfo.getGeonameId();
-            getCache(geoInfoByGeonameIdCache)
-                    .putIfAbsent(geonameId, geoInfo);
-            return geonameId;
-        }
-        return null;
-    }
-
-    @Cacheable(cacheNames = objectBySettingKeyCache, key = "#key",
+    @Cacheable(cacheNames = objectBySettingKeyCache,
+            key = "{#key, #convertJsonValueToMap, #throwExceptionIfOccured, #defaultValue}",
             condition = "#key != null", sync = true)
     public Object allocateSettingByKey(String key,
                                        boolean convertJsonValueToMap,

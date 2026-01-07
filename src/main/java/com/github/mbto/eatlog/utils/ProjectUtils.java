@@ -1,4 +1,4 @@
-package com.github.mbto.eatlog.common.utils;
+package com.github.mbto.eatlog.utils;
 
 import com.github.mbto.eatlog.Application;
 import com.github.mbto.eatlog.common.custommodel.InternalAccount;
@@ -10,8 +10,9 @@ import org.jooq.Record;
 import org.jooq.*;
 import org.jooq.conf.MappedSchema;
 import org.jooq.conf.RenderMapping;
+import org.jooq.conf.Settings;
 import org.jooq.impl.*;
-import org.springframework.boot.autoconfigure.jooq.JooqExceptionTranslator;
+import org.springframework.boot.autoconfigure.jooq.ExceptionTranslatorExecuteListener;
 import org.springframework.boot.autoconfigure.jooq.SpringTransactionProvider;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -20,20 +21,26 @@ import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.*;
+import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.github.mbto.eatlog.common.Constants.*;
 import static com.github.mbto.eatlog.common.custommodel.InternalAccount.*;
 import static com.github.mbto.eatlog.webapp.WebUtils.msgFromBundle;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.*;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 @Slf4j
 public class ProjectUtils {
@@ -43,6 +50,13 @@ public class ProjectUtils {
 //    public static Supplier<Set<LocalDate>> descSortedLocalDateContainerCreator() {
 //        return () -> new TreeSet<>(Comparator.<LocalDate>naturalOrder().reversed());
 //    }
+
+    public static String urlEncode(Map<String, String> map) {
+        return map.entrySet().stream()
+                .map(entry -> URLEncoder.encode(entry.getKey(), UTF_8) + "=" +
+                              URLEncoder.encode(entry.getValue(), UTF_8))
+                .collect(Collectors.joining("&"));
+    }
 
     public static Map<String, String> collectResources(String resourceDirName, String extension) {
         try {
@@ -54,10 +68,8 @@ public class ProjectUtils {
             URI uri = url.toURI();
             if (uri.getScheme().equals("jar")) {
                 synchronized (Application.class) {
-                    try (FileSystem ignored = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
-                        Path dirPath = Paths.get(uri).getParent() // Why parent name is "classes!"? java19?
-                                .resolve("classes")
-                                .resolve(resourceDirName);
+                    try (FileSystem fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                        Path dirPath = fs.getPath(resourceDirName);
                         return collectResources(dirPath, extension);
                     }
                 }
@@ -70,13 +82,14 @@ public class ProjectUtils {
             }
         } catch (Throwable e) {
             throw new RuntimeException("Failed load resource from " +
-                    "'resources/" + resourceDirName + "'", e);
+                                       "'resources/" + resourceDirName + "'", e);
         }
     }
 
     private static Map<String, String> collectResources(Path resourceDirPath, String extension) throws IOException {
-        if (!Files.isDirectory(resourceDirPath))
+        if (!Files.isDirectory(resourceDirPath)) {
             return Collections.emptyMap();
+        }
         Map<String, String> payloadByFilename = new TreeMap<>(Comparator.naturalOrder());
         Files.walkFileTree(resourceDirPath, new SimpleFileVisitor<>() {
             @Override
@@ -99,9 +112,13 @@ public class ProjectUtils {
                 if(extension.equals("sql")) {
                     payload = "/*\n" + fileName + " */\n" + payload;
                 }
+                String dirName = internalPath.getParent().getFileName().toString();
+                if(!dirName.equals("queries")) {
+                    fileName = dirName + "/" + fileName;
+                }
                 if(payloadByFilename.put(fileName, payload) != null) {
                     throw new IllegalStateException("Resource from '" + internalPath.toAbsolutePath() + "' "
-                            + "already exists as '" + fileName + "'");
+                                                    + "already exists as '" + fileName + "'");
                 }
                 return FileVisitResult.CONTINUE;
             }
@@ -126,90 +143,86 @@ public class ProjectUtils {
                                                            String schema,
                                                            String overridedSchema) {
         DefaultConfiguration config = new DefaultConfiguration();
-        config.set(new DataSourceConnectionProvider(new TransactionAwareDataSourceProxy(hikariDataSource)))
-                .set(new DefaultExecuteListenerProvider(new JooqExceptionTranslator()))
-                .set(new SpringTransactionProvider(new DataSourceTransactionManager(hikariDataSource)))
-                .set(SQLDialect.MYSQL)
-        ;
-        config.settings()
-                .withInterpreterDialect(SQLDialect.MYSQL)
-                .withParseDialect(SQLDialect.MYSQL)
-                .withQueryTimeout(Math.toIntExact(queryTimeoutSec))
-        ;
+        config.set(new DataSourceConnectionProvider(new TransactionAwareDataSourceProxy(hikariDataSource)));
+        config.set(new DefaultExecuteListenerProvider(ExceptionTranslatorExecuteListener.DEFAULT));
+        config.set(new SpringTransactionProvider(new DataSourceTransactionManager(hikariDataSource)));
+        config.setSQLDialect(SQLDialect.MYSQL);
+        Settings settings = config.settings();
+        settings.setQueryTimeout(Math.toIntExact(queryTimeoutSec));
+        // https://blog.jooq.org/mysqls-allowmultiqueries-flag-with-jdbc-and-jooq/
+        settings.setRenderGroupConcatMaxLenSessionVariable(false);
+
         boolean overridingSchema = schema != null && overridedSchema != null && !schema.equalsIgnoreCase(overridedSchema);
         if (overridingSchema) {
-            config.settings()
-                    .withRenderMapping(new RenderMapping()
-                            .withSchemata(new MappedSchema()
-                                    .withInput(schema)
-                                    .withOutput(overridedSchema)
-                            )
-                    )
-            ;
+            settings.setRenderMapping(new RenderMapping()
+                    .withSchemata(new MappedSchema()
+                            .withInput(schema)
+                            .withOutput(overridedSchema))
+            );
         }
         DefaultDSLContext defaultDSLContext = new DefaultDSLContext(config);
-        if (schema != null)
-            defaultDSLContext.setSchema(overridingSchema ? overridedSchema : schema).execute();
+        if(overridedSchema != null) {
+            defaultDSLContext.setSchema(overridedSchema).execute();
+        } else if (schema != null) {
+            defaultDSLContext.setSchema(schema).execute();
+        }
         return defaultDSLContext;
     }
 
-//    public static HikariDataSource buildHikariDataSource(Project project) {
-//        return buildHikariDataSource(project, null);
-//    }
-//
-//    public static HikariDataSource buildHikariDataSource(Project project, Properties properties) {
-//        return buildHikariDataSource("pool-" + project.getDatabaseSchema() + " [" + project.getId() + "] " + project.getName(),
-//                "jdbc:mysql://" + project.getDatabaseHostport() + "/",
-//                project.getDatabaseSchema(),
-//                project.getDatabaseUsername(),
-//                project.getDatabasePassword(),
-//                properties);
-//    }
-
     public static HikariDataSource buildHikariDataSource(String poolName) {
-        return buildHikariDataSource(poolName, null, null, null, null, null);
+        return buildHikariDataSource(poolName, null, null, null, null, null, null);
     }
 
     public static HikariDataSource buildHikariDataSource(String poolName, String schema) {
-        return buildHikariDataSource(poolName, null, schema, null, null, null);
+        return buildHikariDataSource(poolName, null, schema, null, null, null, null);
     }
 
-    public static HikariDataSource buildHikariDataSource(String poolName, String schema, Properties properties) {
-        return buildHikariDataSource(poolName, null, schema, null, null, properties);
+    public static HikariDataSource buildHikariDataSource(String poolName, String schema, String transactionIsolation) {
+        return buildHikariDataSource(poolName, null, schema, null, null, null, transactionIsolation);
+    }
+
+    public static HikariDataSource buildHikariDataSource(String poolName, String schema, Properties properties, String transactionIsolation) {
+        return buildHikariDataSource(poolName, null, schema, null, null, properties, transactionIsolation);
     }
 
     public static HikariDataSource buildHikariDataSource(String poolName,
-                                                         String jdbcUrl,
-                                                         String schema,
-                                                         String username,
-                                                         String password,
-                                                         Properties properties) {
+                                                                 String jdbcUrl,
+                                                                 String schema,
+                                                                 String username,
+                                                                 String password,
+                                                                 Properties properties,
+                                                                 String transactionIsolation) {
         HikariDataSource hds = DataSourceBuilder.create()
                 .driverClassName("com.mysql.cj.jdbc.Driver")
                 .type(HikariDataSource.class)
                 .build();
         hds.setPoolName(poolName.replace(':', '-'));
-        if (jdbcUrl != null)
+        if (jdbcUrl != null) {
             hds.setJdbcUrl(jdbcUrl);
-        if (schema != null)
+        }
+        if (schema != null) {
             hds.setSchema(schema);
-        if (username != null)
+        }
+        if (username != null) {
             hds.setUsername(username);
-        if (password != null)
+        }
+        if (password != null) {
             hds.setPassword(password);
-        // Settings will be overrided from application.properties before creating bean "eatlogDataSource"
-        // This is not final values:
-        hds.setMaximumPoolSize(2);
+        }
+        /* Override settings from com.zaxxer.hikari.HikariConfig */
+        hds.setMaximumPoolSize(1);
         hds.setMinimumIdle(1);
 
-        hds.setConnectionTimeout(SECONDS.toMillis(10));
+        hds.setConnectionTimeout(SECONDS.toMillis(30));
         hds.setValidationTimeout(SECONDS.toMillis(5));
-        hds.setIdleTimeout(SECONDS.toMillis(59));
-        hds.setMaxLifetime(hds.getIdleTimeout() + SECONDS.toMillis(1));
+//        hds.setIdleTimeout(MINUTES.toMillis(59)); // setMinimumIdle == setMaximumPoolSize = comment, others overrided in application.yml
+        hds.setMaxLifetime(MINUTES.toMillis(59) + MINUTES.toMillis(1));
 
-        if (properties != null && !properties.isEmpty())
+        hds.setTransactionIsolation(transactionIsolation == null ? "TRANSACTION_REPEATABLE_READ" : transactionIsolation);
+
+        if (properties != null && !properties.isEmpty()) {
             hds.setDataSourceProperties(properties);
-
+        }
         return hds;
     }
 
@@ -218,6 +231,17 @@ public class ProjectUtils {
                 + ", schema=" + hds.getSchema()
                 + ", username=" + hds.getUsername()
                 + ", dataSourceProperties=" + hds.getDataSourceProperties();
+    }
+
+    public static long extractFileSize(Path path) {
+        if(!Files.exists(path)) {
+            return 0;
+        }
+        try {
+            return Files.size(path);
+        } catch (Throwable ignored) {
+            return 0;
+        }
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -247,7 +271,7 @@ public class ProjectUtils {
                 if (targetField.getType() == JSON.class
                         || targetField.getType() == TreeSet.class) {
                     qualifiedCondition = cte.field(targetField)
-                            .notEqual(DSL.val(newValue).cast(JSON.class));
+                            .notEqual(DSL.val(newValue, targetField.getDataType()).cast(JSON.class));
                 } else if (newValue instanceof String) {
                     // 'ddd': `cte`.`description` collate utf8mb4_bin <> 'DDD')
                     qualifiedCondition = cte.field(targetField)
@@ -271,7 +295,11 @@ public class ProjectUtils {
         for (Pair<Field, ?> updatableField : updatableFields) {
             Field targetField = updatableField.getLeft();
             Object newValue = updatableField.getRight();
-            updateStep.set(targetField, newValue);
+            if (targetField.getType() == TreeSet.class) {
+                updateStep.set(targetField, DSL.val(newValue, targetField.getDataType()));
+            } else {
+                updateStep.set(targetField, newValue);
+            }
         }
         return ((UpdateSetMoreStep) updateStep)
                 .where(pkField.eq(pkValue), condition)
@@ -311,12 +339,12 @@ public class ProjectUtils {
         return str1 + str2;
     }
 
-    public static String declension(boolean simpleDeclensionEnabled,
-                                    long value,
-                                    String leftPart,
-                                    String oneValue,
-                                    String fourValues,
-                                    String fiveValues) {
+    public static String declension2(boolean simpleDeclensionEnabled,
+                                             long value,
+                                             String leftPart,
+                                             String oneValue,
+                                             String fourValues,
+                                             String fiveValues) {
         if(simpleDeclensionEnabled) {
             return concatStrings(leftPart, isValueEqualsOne(value) ? oneValue : fiveValues);
         }
@@ -332,16 +360,22 @@ public class ProjectUtils {
     }
 
     public static String declensionValuedL10N(long value, String keyPrefix) {
+        return declensionValuedL10N(value, keyPrefix, true);
+    }
+    public static String declensionValuedL10N(long value, String keyPrefix, boolean addSeparate) {
         boolean simpleDeclensionEnabled = Boolean.parseBoolean(msgFromBundle(BUNDLE_PROPS_SIMPLE_DECLENSION_ENABLED));
         String leftPart = msgFromBundle(keyPrefix + ".0");
         if (simpleDeclensionEnabled) {
-            return value + " "
-                    + concatStrings(leftPart,
-                        isValueEqualsOne(value)
+            return value
+                   + (addSeparate ? " " : "")
+                   + concatStrings(leftPart,
+                    isValueEqualsOne(value)
                             ? msgFromBundle(keyPrefix + ".1")
                             : msgFromBundle(keyPrefix + ".5"));
         }
-        return value + " " + declension(simpleDeclensionEnabled,
+        return value
+               + (addSeparate ? " " : "")
+               + declension2(simpleDeclensionEnabled,
                 value,
                 leftPart,
                 msgFromBundle(keyPrefix + ".1"),
@@ -349,15 +383,32 @@ public class ProjectUtils {
                 msgFromBundle(keyPrefix + ".5"));
     }
 
-    public static String declensionValued(long value, String leftPart,
-                                          String oneValue, String fourValues, String fiveValues) {
-        return declensionValued(true, value, leftPart, oneValue, fourValues, fiveValues);
+    public static String declensionValued(long value,
+                                          String leftPart,
+                                          String oneValue,
+                                          String fourValues,
+                                          String fiveValues) {
+        return declensionValued(value, leftPart, oneValue, fourValues, fiveValues, true);
+    }
+    public static String declensionValued(long value,
+                                          String leftPart,
+                                          String oneValue,
+                                          String fourValues,
+                                          String fiveValues,
+                                          boolean addSeparate) {
+        return declensionValued(true, value, leftPart, oneValue, fourValues, fiveValues, addSeparate);
     }
 
-    public static String declensionValued(boolean simpleDeclensionEnabled, long value, String leftPart,
-                                          String oneValue, String fourValues, String fiveValues) {
-        return value + " "
-                + declension(simpleDeclensionEnabled, value, leftPart, oneValue, fourValues, fiveValues);
+    public static String declensionValued(boolean simpleDeclensionEnabled,
+                                          long value,
+                                          String leftPart,
+                                          String oneValue,
+                                          String fourValues,
+                                          String fiveValues,
+                                          boolean addSeparate) {
+        return value
+               + (addSeparate ? " " : "")
+               + declension2(simpleDeclensionEnabled, value, leftPart, oneValue, fourValues, fiveValues);
     }
 
     public static boolean isValueEqualsOne(long value) {
@@ -412,5 +463,111 @@ public class ProjectUtils {
             return null;
         }
         return value;
+    }
+
+    private static String declension(int value, String opt1, String opt2, String opt3) {
+        int n = Math.abs(value);
+        int lastTwo = n % 100;
+        int lastOne = n % 10;
+        if (lastTwo >= 11 && lastTwo <= 19) {
+            return opt3;
+        }
+        if (lastOne == 1) {
+            return opt1;
+        }
+        if (lastOne >= 2 && lastOne <= 4) {
+            return opt2;
+        }
+        return opt3;
+    }
+    public static String buildHumanDateTimeDiff(LocalDateTime start, LocalDateTime end, String lang) {
+        if (end == null || end.isBefore(start)) {
+            return null;
+        }
+        LocalDateTime temp = start;
+        int y = (int) temp.until(end, ChronoUnit.YEARS);
+        temp = temp.plusYears(y);
+        int mn = (int) temp.until(end, ChronoUnit.MONTHS);
+        temp = temp.plusMonths(mn);
+        int d = (int) temp.until(end, ChronoUnit.DAYS);
+        temp = temp.plusDays(d);
+        int h = (int) (temp.until(end, ChronoUnit.HOURS) % 24);
+        temp = temp.plusHours(h);
+        int m = (int) (temp.until(end, ChronoUnit.MINUTES) % 60);
+        temp = temp.plusMinutes(m);
+        int s = (int) (temp.until(end, ChronoUnit.SECONDS) % 60);
+        return formatPieces(y, mn, d, h, m, s, lang);
+    }
+    public static String buildHumanDateTimeDiff(long totalSeconds, String lang) {
+        if (totalSeconds < 0) {
+            return null;
+        }
+        try {
+            LocalDateTime epoch = LocalDateTime.of(1970, 1, 1, 0, 0, 0);
+            LocalDateTime end = epoch.plusSeconds(totalSeconds);
+            return buildHumanDateTimeDiff(epoch, end, lang);
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+    private static String formatPieces(int y, int mn, int d, int h, int m, int s, String lang) {
+        StringBuilder sb = new StringBuilder();
+        boolean needsSpace = false;
+        if ("ru".equals(lang)) {
+            if (y > 0) {
+                appendWithSpace(sb, needsSpace, y + declension(y, "год", "года", "лет"));
+                needsSpace = true;
+            }
+            if (mn > 0) {
+                appendWithSpace(sb, needsSpace, mn + "мес");
+                needsSpace = true;
+            }
+            if (d > 0) {
+                appendWithSpace(sb, needsSpace, d + "дн");
+                needsSpace = true;
+            }
+            if (h > 0) {
+                appendWithSpace(sb, needsSpace, h + "ч");
+                needsSpace = true;
+            }
+            if (m > 0) {
+                appendWithSpace(sb, needsSpace, m + "м");
+                needsSpace = true;
+            }
+            if (s > 0 || !needsSpace) {
+                appendWithSpace(sb, needsSpace, s + "с");
+            }
+        } else {
+            if (y > 0) {
+                appendWithSpace(sb, needsSpace, y + (y == 1 ? "year" : "years"));
+                needsSpace = true;
+            }
+            if (mn > 0) {
+                appendWithSpace(sb, needsSpace, mn + "mo");
+                needsSpace = true;
+            }
+            if (d > 0) {
+                appendWithSpace(sb, needsSpace, d + "d");
+                needsSpace = true;
+            }
+            if (h > 0) {
+                appendWithSpace(sb, needsSpace, h + "h");
+                needsSpace = true;
+            }
+            if (m > 0) {
+                appendWithSpace(sb, needsSpace, m + "m");
+                needsSpace = true;
+            }
+            if (s > 0 || !needsSpace) {
+                appendWithSpace(sb, needsSpace, s + "s");
+            }
+        }
+        return sb.isEmpty() ? null : sb.toString();
+    }
+    private static void appendWithSpace(StringBuilder sb, boolean needsSpace, String part) {
+        if (needsSpace) {
+            sb.append(' ');
+        }
+        sb.append(part);
     }
 }

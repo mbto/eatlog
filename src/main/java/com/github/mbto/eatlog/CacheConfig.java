@@ -1,6 +1,7 @@
 package com.github.mbto.eatlog;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
@@ -10,10 +11,9 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 
 import static com.github.mbto.eatlog.service.CacheService.*;
-import static java.util.Map.entry;
 
 @Configuration
 @EnableCaching(proxyTargetClass = true)
@@ -22,20 +22,19 @@ public class CacheConfig implements CachingConfigurer {
     @Override
     public CacheManager cacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
-        List<Map.Entry<String, int[]>> paramsByCacheName = List.of(
-                entry(geoInfoByGeonameIdCache,    new int[] { 1024, 24 }),
-                entry(geonameIdByIpCache,         new int[] { 2048, 24 }),
-                entry(objectBySettingKeyCache,    new int[] {   32, 24 }),
-                entry(observedAccountByIdCache,   new int[] {  512, 24 }),
-                entry(hoursCache,                 new int[] {    1,  1 })
+        List<Triple<String, int[], Function<Long, Duration>>> paramsByCacheName = List.of(
+                Triple.of(objectBySettingKeyCache,    new int[] {   32, 24 }, Duration::ofHours),
+                Triple.of(observedAccountByIdCache,   new int[] {  512, 24 }, Duration::ofHours),
+                Triple.of(siteVisitorsCache,          new int[] {    1,  1 }, Duration::ofHours)
         );
-        for (Map.Entry<String, int[]> entry : paramsByCacheName) {
-            String cacheName = entry.getKey();
-            int[] params = entry.getValue();
+        for (var entry : paramsByCacheName) {
+            String cacheName = entry.getLeft();
+            int[] params = entry.getMiddle();
+            Function<Long, Duration> durationFunc = entry.getRight();
             cacheManager.registerCustomCache(cacheName,
                     Caffeine.newBuilder()
                             .maximumSize(params[0])
-                            .expireAfterWrite(Duration.ofHours(params[1]))
+                            .expireAfterWrite(durationFunc.apply((long) params[1]))
                             .recordStats()
                             .build());
         }

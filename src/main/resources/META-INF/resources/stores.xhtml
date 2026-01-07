@@ -23,7 +23,7 @@
              rowKey="#{child.id}"
              paginator="true" rows="15"
              rowsPerPageTemplate="15,30,50"
-             currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+             currentPageReportTemplate="#{l10n['table.current.page.report.template']}"
              paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
              rowStyleClass="rightAlign">
     <f:facet name="header">
@@ -57,7 +57,7 @@
                  update="dialogForm dialogMsgs"
                  onsuccess="PF('editChildDialogW').show()"
                  resetValues="true"
-                 icon="ui-icon-plusthick"
+                 icon="pi pi-plus-circle"
                  style="margin-top:10px;" styleClass="ui-button-success"
                  disabled="#{viewStore.observationWrapper.observation}"/>
 <p:blockUI
@@ -70,12 +70,12 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
 <ui:define name="dialogs">
 <p:dialog widgetVar="editChildDialogW" header="#{l10n['store.options']}"
           position="center,center" positionType="fixed"
-          responsive="true" fitViewport="true" resizable="false"
+          responsive="true" fitViewport="true" resizable="false" minWidth="580" width="580"
           closeOnEscape="true"
           showEffect="fade" modal="true"
           rendered="#{!viewStore.observationWrapper.observation}">
 <h:form id="dialogForm">
-    <p:panelGrid styleClass="ui-panelgrid-blank">
+    <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
         <p:row>
             <p:column>
                 <p:outputLabel for="inTitleId" value="#{l10n['title']}"/>
@@ -83,13 +83,14 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
             <p:column>
                 <p:inputText id="inTitleId" value="#{viewStore.selectedChild.title}" required="true"
                              placeholder="#{l10n['title']}"
-                             size="32"
+                             maxlength="32"
                              requiredMessage="#{l10n['enter.store.title']}"
                              onkeypress="if(event.keyCode == 13){return false;}"/>
             </p:column>
         </p:row>
         <p:row>
             <p:column colspan="2">
+            <div class="button-line">
             <p:commandButton id="saveBtn" value="#{l10n['save']}" icon="pi pi-check"
                              process="@this dialogForm"
                              actionListener="#{viewStore.saveOrUpdate()}"
@@ -108,6 +109,7 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
                              type="button"
                              style="margin-left:5px;"
                              onclick="PF('editChildDialogW').hide()"/>
+            </div>
             </p:column>
         </p:row>
     </p:panelGrid>

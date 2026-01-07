@@ -9,7 +9,7 @@
       xmlns:o="http://omnifaces.org/ui"
       xmlns:of="http://omnifaces.org/functions">
 <f:metadata>
-    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum"/>
     <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false, RoleEnum.REDACTOR.roleName)}" onPostback="false"/>
     <o:viewAction actionListener="#{viewSetting.fetch()}" onPostback="false"
                   if="#{sessionAccount.fetchAccepted and sessionAccount.internalAccount.calcedRoles.ownerOrRedactor}"/>
@@ -22,9 +22,9 @@
              lazy="true" selection="#{viewSetting.selectedChild}"
              selectionMode="single"
              rowKey="#{child.id}"
-             paginator="true" rows="15"
+             paginator="true" rows="15" paginatorPosition="top"
              rowsPerPageTemplate="15,30,50"
-             currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+             currentPageReportTemplate="#{l10n['table.current.page.report.template']}"
              paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}">
     <f:facet name="header">
         <h:outputText value="#{l10n['settings']}" style="font-weight:normal;"/>
@@ -47,10 +47,10 @@
     <p:column>
         <h:outputText value="#{child.value}"/>
     </p:column>
-    <p:column>
+    <p:column style="width:150px;">
         <h:outputText value="#{l10n['no']}"
                       rendered="#{empty child.roles}"/>
-        <p:selectManyCheckbox value="#{child.roles}" style="min-width:130px;"
+        <p:selectManyCheckbox value="#{child.roles}"
                               layout="pageDirection" disabled="true"
                               rendered="#{not empty child.roles}">
             <f:selectItems value="#{child.roles}"
@@ -66,7 +66,7 @@
                  update="dialogForm dialogMsgs"
                  onsuccess="PF('editChildDialogW').show()"
                  resetValues="true"
-                 icon="ui-icon-plusthick"
+                 icon="pi pi-plus-circle"
                  style="margin-top:10px;" styleClass="ui-button-success"
                  disabled="#{!sessionAccount.internalAccount.calcedRoles.owner}"/>
 <p:blockUI
@@ -79,17 +79,18 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
 <ui:define name="dialogs">
 <p:dialog widgetVar="editChildDialogW" header="#{l10n['setting.options']}"
           position="center,center" positionType="fixed"
-          responsive="true" fitViewport="true" resizable="false"
+          responsive="true" fitViewport="true" resizable="false" minWidth="580" width="580"
           closeOnEscape="true"
-          showEffect="fade" modal="true">
+          showEffect="fade" modal="true"
+          rendered="#{sessionAccount.fetchAccepted and sessionAccount.internalAccount.calcedRoles.ownerOrRedactor}">
 <h:form id="dialogForm">
-    <p:panelGrid styleClass="ui-panelgrid-blank">
+    <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
         <p:row>
-            <p:column>
+            <p:column style="width:170px;">
                 <p:outputLabel for="inKeyId" value="#{l10n['key']}"/>
             </p:column>
             <p:column>
-                <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+                <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum"/>
                 <p:selectOneMenu id="inKeyId" value="#{viewSetting.selectedChild.key}" required="true"
                                  placeholder="#{l10n['key']}"
                                  autoWidth="true" height="400"
@@ -97,14 +98,14 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
                                  requiredMessage="#{l10n['enter.setting.key']}"
                                  validator="#{viewSetting.validateKey}"
                                  disabled="#{!sessionAccount.internalAccount.calcedRoles.owner}">
-                    <f:selectItems value="#{SettingEnum.ALL_ENUM_VALUES}" var="me"
+                    <f:selectItems value="#{SettingEnum.ALL_VALUES}" var="me"
                                    itemValue="#{me.key}" itemLabel="#{me.key}"
                                    itemDisabled="#{!sessionAccount.internalAccount.calcedRoles.owner}"/>
                 </p:selectOneMenu>
             </p:column>
         </p:row>
         <p:row>
-            <p:column>
+            <p:column style="width:170px;">
                 <p:outputLabel for="inValueId" value="#{l10n['value']}"/>
             </p:column>
             <p:column>
@@ -117,7 +118,7 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
             </p:column>
         </p:row>
         <p:row>
-            <p:column style="width:100px;">
+            <p:column style="width:170px;">
                 <p:outputLabel value="#{l10n['roles.for.view.edit']}"/>
             </p:column>
             <p:column>
@@ -134,6 +135,7 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
         </p:row>
         <p:row>
             <p:column colspan="2">
+            <div class="button-line">
             <p:commandButton id="saveBtn" value="#{l10n['save']}" icon="pi pi-check"
                              process="@this dialogForm"
                              actionListener="#{viewSetting.saveOrUpdate()}"
@@ -154,6 +156,7 @@ trigger="childsTable,addChildBtn,dialogForm:saveBtn,dialogForm:deleteBtn"/>
                              type="button"
                              style="margin-left:5px;"
                              onclick="PF('editChildDialogW').hide()"/>
+            </div>
             </p:column>
         </p:row>
     </p:panelGrid>

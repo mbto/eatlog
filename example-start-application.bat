@@ -1,2 +1,2 @@
-REM Example start application: change location eatlog.jar and application.properties files
-java -jar C:\Users\%USERNAME%\IdeaProjects\eatlog\build\libs\eatlog.jar --spring.config.location=C:\Users\%USERNAME%\IdeaProjects\eatlog\src\main\resources\application.properties
+REM Example start application: change location eatlog.jar and application.yml files
+java -jar C:\Users\%USERNAME%\IdeaProjects\eatlog\build\libs\eatlog.jar --spring.config.location=C:\Users\%USERNAME%\IdeaProjects\eatlog\src\main\resources\application.yml

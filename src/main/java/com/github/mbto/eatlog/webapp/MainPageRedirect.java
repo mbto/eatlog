@@ -23,7 +23,7 @@ public class MainPageRedirect implements WebMvcConfigurer {
         return container -> {
             container.addErrorPages(new ErrorPage(HttpStatus.FORBIDDEN, "/403.xhtml"));
             container.addErrorPages(new ErrorPage(HttpStatus.NOT_FOUND, "/404.xhtml"));
-//            container.addErrorPages(new ErrorPage(HttpStatus.INTERNAL_SERVER_ERROR, "/500.xhtml"));
+//            container.addErrorPages(new ErrorPage(HttpStatus.INTERNAL_SERVER_ERROR, "/error.xhtml"));
             container.addErrorPages(new ErrorPage(Throwable.class, "/error.xhtml"));
         };
     }

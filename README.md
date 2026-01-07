@@ -6,11 +6,11 @@ Sourcecode of site https://eatlog.ru/
 * See a graph of your weight change
 * Track weight, consumed products and excess calorie consumption of other users
 * Copy products of other users to your store
-* Google OAuth 2.0 authentication
+* Yandex OAuth 2.0 authentication
 * Localization: 🇷🇺 RU 🇺🇸 EN
 
 #### **Requirements:**
-* Java 19 at [oracle.com/java](https://www.oracle.com/java/technologies/javase/jdk19-archive-downloads.html)
+* Java 25 at [oracle.com/java](https://www.oracle.com/java/technologies/javase-downloads.html)
 * MySQL server 8+
 
 #### **Install & launch:**
@@ -27,7 +27,7 @@ Sourcecode of site https://eatlog.ru/
 
 #### **Compile & Build:**
 * **Requirements:**
-    * `Gradle 8.0.2+`
+    * `Gradle 8.14.3+`
 * **With tests:**
     * Unix: `gradlew build`
     * Windows: `gradlew.bat build`

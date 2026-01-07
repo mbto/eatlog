@@ -2,7 +2,6 @@
     background-color: #090;
 }
 .ui-widget {
-    font-family:Verdana,Arial,sans-serif;
     font-size: 100%;
 }
 .ui-widget .ui-widget {
@@ -22,6 +21,17 @@
 }
 .ui-datalist table {
     table-layout: auto !important;
+}
+.ui-paginator .ui-paginator-first::before { content: "«" !important; }
+.ui-paginator .ui-paginator-prev::before  { content: "‹" !important; }
+.ui-paginator .ui-paginator-next::before  { content: "›" !important; }
+.ui-paginator .ui-paginator-last::before  { content: "»" !important; }
+.ui-paginator button::before {
+    font-family: sans-serif !important;
+    font-weight: bold;
+}
+.ui-divider.ui-divider-solid.ui-divider-horizontal::before {
+    border-top: 1px solid #000000 !important;
 }
 .propToRemove {
     background-color: #ffa6a6 !important;
@@ -45,6 +55,21 @@
     background-image: none !important;
     color: #000000 !important;
 }
+.name-cell {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.name-cell img,
+.name-cell a {
+    vertical-align: middle;
+}
+.name-cell a {
+    margin-left: .5rem;
+}
+.button-line {
+    white-space: nowrap;
+    vertical-align: middle;
+}
 .rightAlignTotal {
     text-align: right;
     background-color: #edf1f4 !important;
@@ -54,10 +79,14 @@
 .rightAlign {
     text-align: right;
 }
+.visitorPanel {
+    white-space:pre-wrap;
+    font-size:smaller;
+}
 .visitorLink {
     text-decoration: none;
-    color: #474747;
     white-space: nowrap;
+    font-size:smaller;
 }
 .visitorName {
     display: block;

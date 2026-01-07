@@ -1,7 +1,7 @@
 package com.github.mbto.eatlog.service;
 
 import com.github.mbto.eatlog.common.custommodel.InternalAccount;
-import com.github.mbto.eatlog.common.dto.auth.GoogleAuth;
+import com.github.mbto.eatlog.common.dto.auth.YandexAuth;
 import com.github.mbto.eatlog.common.model.eatlog.tables.records.AccountRecord;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -33,35 +33,35 @@ public class AccountService {
     @Autowired
     private ApplicationHolder applicationHolder;
 
-    public InternalAccount findOrCreateAccount(String sub, String localeSegments, UInteger geonameId) {
+    public InternalAccount findOrCreateAccount(String yandexId, String localeSegments, UInteger ip) {
         if(applicationHolder.isDevEnvironment()) {
-            return findOrCreateAccount(new GoogleAuth(sub), localeSegments, geonameId);
+            return findOrCreateAccount(new YandexAuth(yandexId), localeSegments, ip);
         }
         throw new IllegalStateException("Required dev environment");
     }
 
-    public InternalAccount findOrCreateAccount(GoogleAuth auth,
+    public InternalAccount findOrCreateAccount(YandexAuth auth,
                                                String localeSegments,
-                                               UInteger geonameId) {
+                                               UInteger ip) {
         log.info("Try find/create account with auth=" + auth
                 + ", localeSegments=" + localeSegments
-                + ", geonameId=" + geonameId);
+                + ", ip=" + ip);
         AtomicBoolean accountCreated = new AtomicBoolean(false);
         InternalAccount internalAccount = eatlogDsl.transactionResult(config -> {
             DSLContext transactionalDsl = DSL.using(config);
             InternalAccount existedAccount = transactionalDsl.selectFrom(ACCOUNT)
-                    .where(ACCOUNT.GOOGLE_SUB.eq(auth.getSub()))
+                    .where(ACCOUNT.SITE_AUTH_YANDEXID.eq(auth.getYandexId()))
                     .fetchOneInto(InternalAccount.class);
             if (existedAccount != null) {
                 // use existed account
                 UpdateSetMoreStep<AccountRecord> step = transactionalDsl.update(ACCOUNT)
                         .set(ACCOUNT.LASTAUTH_AT, DSL.currentTimestamp().cast(ACCOUNT.LASTAUTH_AT.getType()))
-                        .set(ACCOUNT.GEONAME_ID, geonameId)
+                        .set(ACCOUNT.IP, ip)
                         ;
-                if(auth.getPicture() != null) {
+                if(auth.getAvatarUrl() != null) {
                     //noinspection ResultOfMethodCallIgnored
-                    step.set(ACCOUNT.GOOGLE_PICTURE_URL, auth.getPicture());
-                    existedAccount.setGooglePictureUrl(auth.getPicture());
+                    step.set(ACCOUNT.SITE_AVATAR_URL, auth.getAvatarUrl());
+                    existedAccount.setSiteAvatarUrl(auth.getAvatarUrl());
                 }
                 step.where(ACCOUNT.ID.eq(existedAccount.getId()))
                         .execute();
@@ -69,10 +69,10 @@ public class AccountService {
             }
             // register new account
             AccountRecord accountRecord = transactionalDsl.insertInto(ACCOUNT)
-                    .set(ACCOUNT.NAME, StringUtils.isBlank(auth.getName())
-                            ? msgFromBundle("new.account") : auth.getName().trim())
-                    .set(ACCOUNT.GOOGLE_SUB, auth.getSub())
-                    .set(ACCOUNT.GOOGLE_PICTURE_URL, auth.getPicture())
+                    .set(ACCOUNT.NAME, StringUtils.isBlank(auth.getRealName())
+                            ? msgFromBundle("new.account") : auth.getRealName().trim())
+                    .set(ACCOUNT.SITE_AUTH_YANDEXID, auth.getYandexId())
+                    .set(ACCOUNT.SITE_AVATAR_URL, auth.getAvatarUrl())
                     .set(ACCOUNT.LOCALE_SEGMENTS, localeSegments)
                     .set(ACCOUNT.ROLES,
                             transactionalDsl.fetchExists(
@@ -83,7 +83,7 @@ public class AccountService {
                               : Stream.of(OWNER.getRoleName())
                                     .collect(Collectors.toCollection(rolesContainerCreatorFunc))
                     )
-                    .set(ACCOUNT.GEONAME_ID, geonameId)
+                    .set(ACCOUNT.IP, ip)
                     .returning(ACCOUNT.asterisk())
                     .fetchOne();
             accountCreated.set(true);
@@ -97,13 +97,13 @@ public class AccountService {
                     .execute();
             return accountRecord.into(InternalAccount.class);
         });
-        internalAccount.setGeonameId(geonameId);
+        internalAccount.setIp(ip);
         internalAccount.calcRoles();
         log.info("Successfully " + (accountCreated.get() ? "created" : "finded")
                 + " account=" + internalAccount
                 + " by auth=" + auth
                 + ", localeSegments=" + localeSegments
-                + ", geonameId=" + geonameId);
+                + ", ip=" + ip);
         return internalAccount;
     }
 }

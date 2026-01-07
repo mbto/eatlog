@@ -6,23 +6,29 @@ package com.github.mbto.eatlog.common.model.eatlog.tables;
 
 import com.github.mbto.eatlog.common.model.eatlog.Eatlog;
 import com.github.mbto.eatlog.common.model.eatlog.Keys;
+import com.github.mbto.eatlog.common.model.eatlog.tables.Consumed.ConsumedPath;
+import com.github.mbto.eatlog.common.model.eatlog.tables.Store.StorePath;
 import com.github.mbto.eatlog.common.model.eatlog.tables.records.ProductRecord;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
 
+import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Function11;
 import org.jooq.Identity;
+import org.jooq.InverseForeignKey;
 import org.jooq.Name;
+import org.jooq.Path;
+import org.jooq.PlainSQL;
+import org.jooq.QueryPart;
 import org.jooq.Record;
-import org.jooq.Records;
-import org.jooq.Row11;
+import org.jooq.SQL;
 import org.jooq.Schema;
-import org.jooq.SelectField;
+import org.jooq.Select;
+import org.jooq.Stringly;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
@@ -36,7 +42,7 @@ import org.jooq.types.UInteger;
 /**
  * bju and kkal values: per 100 gram
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Product extends TableImpl<ProductRecord> {
 
     private static final long serialVersionUID = 1L;
@@ -110,11 +116,11 @@ public class Product extends TableImpl<ProductRecord> {
     public final TableField<ProductRecord, BigDecimal> KKAL = createField(DSL.name("kkal"), SQLDataType.DECIMAL(7, 2).nullable(false), this, "");
 
     private Product(Name alias, Table<ProductRecord> aliased) {
-        this(alias, aliased, null);
+        this(alias, aliased, (Field<?>[]) null, null);
     }
 
-    private Product(Name alias, Table<ProductRecord> aliased, Field<?>[] parameters) {
-        super(alias, null, aliased, parameters, DSL.comment("bju and kkal values: per 100 gram"), TableOptions.table());
+    private Product(Name alias, Table<ProductRecord> aliased, Field<?>[] parameters, Condition where) {
+        super(alias, null, aliased, parameters, DSL.comment("bju and kkal values: per 100 gram"), TableOptions.table(), where);
     }
 
     /**
@@ -138,8 +144,37 @@ public class Product extends TableImpl<ProductRecord> {
         this(DSL.name("product"), null);
     }
 
-    public <O extends Record> Product(Table<O> child, ForeignKey<O, ProductRecord> key) {
-        super(child, key, PRODUCT);
+    public <O extends Record> Product(Table<O> path, ForeignKey<O, ProductRecord> childPath, InverseForeignKey<O, ProductRecord> parentPath) {
+        super(path, childPath, parentPath, PRODUCT);
+    }
+
+    /**
+     * A subtype implementing {@link Path} for simplified path-based joins.
+     */
+    public static class ProductPath extends Product implements Path<ProductRecord> {
+
+        private static final long serialVersionUID = 1L;
+        public <O extends Record> ProductPath(Table<O> path, ForeignKey<O, ProductRecord> childPath, InverseForeignKey<O, ProductRecord> parentPath) {
+            super(path, childPath, parentPath);
+        }
+        private ProductPath(Name alias, Table<ProductRecord> aliased) {
+            super(alias, aliased);
+        }
+
+        @Override
+        public ProductPath as(String alias) {
+            return new ProductPath(DSL.name(alias), this);
+        }
+
+        @Override
+        public ProductPath as(Name alias) {
+            return new ProductPath(alias, this);
+        }
+
+        @Override
+        public ProductPath as(Table<?> alias) {
+            return new ProductPath(alias.getQualifiedName(), this);
+        }
     }
 
     @Override
@@ -162,16 +197,29 @@ public class Product extends TableImpl<ProductRecord> {
         return Arrays.asList(Keys.PRODUCT_STORE_STORE_ID_FK);
     }
 
-    private transient Store _store;
+    private transient StorePath _store;
 
     /**
      * Get the implicit join path to the <code>eatlog.store</code> table.
      */
-    public Store store() {
+    public StorePath store() {
         if (_store == null)
-            _store = new Store(this, Keys.PRODUCT_STORE_STORE_ID_FK);
+            _store = new StorePath(this, Keys.PRODUCT_STORE_STORE_ID_FK, null);
 
         return _store;
+    }
+
+    private transient ConsumedPath _consumed;
+
+    /**
+     * Get the implicit to-many join path to the <code>eatlog.consumed</code>
+     * table
+     */
+    public ConsumedPath consumed() {
+        if (_consumed == null)
+            _consumed = new ConsumedPath(this, null, Keys.CONSUMED_PRODUCT_PRODUCT_ID_FK.getInverseKey());
+
+        return _consumed;
     }
 
     @Override
@@ -213,27 +261,87 @@ public class Product extends TableImpl<ProductRecord> {
         return new Product(name.getQualifiedName(), null);
     }
 
-    // -------------------------------------------------------------------------
-    // Row11 type methods
-    // -------------------------------------------------------------------------
-
+    /**
+     * Create an inline derived table from this table
+     */
     @Override
-    public Row11<UInteger, UInteger, String, Short, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal, BigDecimal> fieldsRow() {
-        return (Row11) super.fieldsRow();
+    public Product where(Condition condition) {
+        return new Product(getQualifiedName(), aliased() ? this : null, null, condition);
     }
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    public <U> SelectField<U> mapping(Function11<? super UInteger, ? super UInteger, ? super String, ? super Short, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? extends U> from) {
-        return convertFrom(Records.mapping(from));
+    @Override
+    public Product where(Collection<? extends Condition> conditions) {
+        return where(DSL.and(conditions));
     }
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    public <U> SelectField<U> mapping(Class<U> toType, Function11<? super UInteger, ? super UInteger, ? super String, ? super Short, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? super BigDecimal, ? extends U> from) {
-        return convertFrom(toType, Records.mapping(from));
+    @Override
+    public Product where(Condition... conditions) {
+        return where(DSL.and(conditions));
+    }
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @Override
+    public Product where(Field<Boolean> condition) {
+        return where(DSL.condition(condition));
+    }
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @Override
+    @PlainSQL
+    public Product where(SQL condition) {
+        return where(DSL.condition(condition));
+    }
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @Override
+    @PlainSQL
+    public Product where(@Stringly.SQL String condition) {
+        return where(DSL.condition(condition));
+    }
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @Override
+    @PlainSQL
+    public Product where(@Stringly.SQL String condition, Object... binds) {
+        return where(DSL.condition(condition, binds));
+    }
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @Override
+    @PlainSQL
+    public Product where(@Stringly.SQL String condition, QueryPart... parts) {
+        return where(DSL.condition(condition, parts));
+    }
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @Override
+    public Product whereExists(Select<?> select) {
+        return where(DSL.exists(select));
+    }
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @Override
+    public Product whereNotExists(Select<?> select) {
+        return where(DSL.notExists(select));
     }
 }

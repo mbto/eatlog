@@ -7,9 +7,6 @@ import jakarta.faces.context.FacesContext;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.LocaleUtils;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.impl.DSL;
 import org.primefaces.application.exceptionhandler.ExceptionInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -21,10 +18,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static com.github.mbto.eatlog.common.Constants.GEO_SCHEMA_NAME;
-import static com.github.mbto.eatlog.common.Constants.GEO_TABLES_NAMES;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.collectResources;
-import static com.github.mbto.eatlog.common.utils.ProjectUtils.declensionValued;
+import static com.github.mbto.eatlog.utils.ProjectUtils.collectResources;
 
 @Service
 @Lazy(false)
@@ -32,15 +26,11 @@ import static com.github.mbto.eatlog.common.utils.ProjectUtils.declensionValued;
 public class ApplicationHolder {
     @Autowired
     private ApplicationContext applicationContext;
-    @Autowired
-    private DSLContext eatlogDsl;
 
     @Getter
     private boolean isDevEnvironment;
     @Getter
     private boolean isTestEnvironment;
-    @Getter
-    private Map<String, String> queryByFilename;
     @Getter
     private Map<Locale, LocaleSettings> localeSettingsByAvailableLocale;
     private Map<String, Map.Entry<Locale, LocaleSettings>> alternativeLocaleEntryByLanguage;
@@ -54,18 +44,7 @@ public class ApplicationHolder {
                 .getActiveProfiles());
         isDevEnvironment = profiles.contains("dev");
         isTestEnvironment = profiles.contains("test");
-        reloadQueries();
         reloadLocales();
-        try {
-            isGeoInfoAvailable(eatlogDsl, true);
-        } catch (Throwable e) {
-            log.warn("Failed check availability GeoInfo fetching", e);
-        }
-    }
-
-    public void reloadQueries() {
-        queryByFilename = collectResources("queries", "sql");
-        log.info("Reloaded " + declensionValued(queryByFilename.size(), "sql quer", "y", "ies", "ies"));
     }
 
     public void reloadLocales() {
@@ -149,31 +128,6 @@ public class ApplicationHolder {
     public void clearPfExceptionHandler() {
         FacesContext fc = FacesContext.getCurrentInstance();
         fc.getExternalContext().getSessionMap().remove(ExceptionInfo.ATTRIBUTE_NAME);
-    }
-
-    public boolean isGeoInfoAvailable(DSLContext dslContext, boolean isLogEnabled) throws Exception {
-        Field<String> tableNameField = DSL.field("TABLE_NAME", String.class);
-        List<String> tableNamesSlice = dslContext.select(tableNameField)
-                .from(DSL.table("information_schema.TABLES"))
-                .where(DSL.field("TABLE_SCHEMA").eq(GEO_SCHEMA_NAME),
-                        DSL.field("TABLE_NAME").in(GEO_TABLES_NAMES))
-                .orderBy(DSL.one())
-                .fetchInto(tableNameField.getType());
-        if(tableNamesSlice.size() != GEO_TABLES_NAMES.size()) {
-            if(isLogEnabled) {
-                log.warn("Disabled fetching GeoInfo, some tables of database `" + GEO_SCHEMA_NAME + "`"
-                        + " required=" + GEO_TABLES_NAMES
-                        + ", founded=" + tableNamesSlice
-                        + ". Eatlog uses geo tables from https://github.com/mbto/maxmind-geoip2-csv2sql-converter"
-                        + " with config 'GeoLite2-City-CSV.mysql.eatlog.ini' in project root"
-                );
-            }
-            return false;
-        }
-        if(isLogEnabled) {
-            log.info("Available fetching GeoInfo");
-        }
-        return true;
     }
 
     public void testThrowRuntimeException() {

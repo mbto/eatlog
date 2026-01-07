@@ -9,35 +9,41 @@
       xmlns:o="http://omnifaces.org/ui"
       xmlns:of="http://omnifaces.org/functions">
 <f:metadata>
-    <o:viewAction actionListener="#{requestLoginGoogle.onInvokeApplication()}" onPostback="false"/>
+    <o:viewAction actionListener="#{requestLogin.onInvokeApplication()}" onPostback="false"/>
     <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false)}" onPostback="false"/>
 </f:metadata>
 <ui:composition template="../template/layout.xhtml">
+<ui:define name="head">
+<ui:fragment rendered="#{applicationHolder.devEnvironment}">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.7.2/css/all.css" />
+</ui:fragment>
+</ui:define>
 <ui:define name="title">#{l10n['account']}</ui:define>
 <ui:define name="centerForAll">
 <ui:fragment rendered="#{sessionAccount.authed}">
-    <p:panelGrid id="panelGridId" style="margin:0 auto;" styleClass="ui-panelgrid-blank">
+
+    <p:panelGrid id="panelGridId" columns="2" style="margin:0 auto;width:700px;" styleClass="ui-panelgrid-blank">
         <p:row>
-            <p:column colspan="2">
+            <p:column colspan="2" style="margin:0 auto;">
                 <ui:fragment rendered="#{sessionAccount.internalAccount.isBanned}">
                     <p:graphicImage value="#{resource['static/images/banned.jpg']}"
-                                    style="display:block;margin:0 auto;"/>
+                                    style="display:block;margin:0 auto;border-radius:50%;"/>
                 </ui:fragment>
                 <ui:fragment rendered="#{!sessionAccount.internalAccount.isBanned}">
-                    <p:graphicImage srcset="#{sessionAccount.internalAccount.googlePictureUrl}"
-                                    style="display:block;margin:0 auto;"
-                                    rendered="#{not empty sessionAccount.internalAccount.googlePictureUrl}"/>
-                    <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
-                                    style="display:block;margin:0 auto;"
-                                    rendered="#{empty sessionAccount.internalAccount.googlePictureUrl}"/>
+                    <p:graphicImage srcset="#{sessionAccount.internalAccount.siteAvatarUrl}"
+                                    style="display:block;margin:0 auto;border-radius:50%;"
+                                    rendered="#{not empty sessionAccount.internalAccount.siteAvatarUrl}"/>
+                    <p:graphicImage value="#{resource['static/images/default.jpg']}"
+                                    style="display:block;margin:0 auto;border-radius:50%;"
+                                    rendered="#{empty sessionAccount.internalAccount.siteAvatarUrl}"/>
                 </ui:fragment>
             </p:column>
         </p:row>
         <p:row>
-            <p:column style="width:160px;">
+            <p:column>
                 <h:outputLabel value="#{l10n['date.registration']}"/>
             </p:column>
-            <p:column style="width:280px;">
+            <p:column>
                 <h:outputText value="#{sessionAccount.internalAccount.createdAt}">
                     <f:convertDateTime pattern="dd.MM.yyyy HH:mm" type="localDateTime"/>
                 </h:outputText><br/>
@@ -71,11 +77,13 @@
                                 listener="#{sessionAccount.updateName()}"
                                 update="@form msgs siteVisitorsOutputPanelId"/>
                         <f:facet name="output">
+                            <span style="white-space:nowrap;">
                             <i class="pi pi-cog"/>
                             <h:outputText value=" #{sessionAccount.internalAccount.name}"/>
+                            </span>
                         </f:facet>
                         <f:facet name="input">
-                            <p:inputText id="inNameId" value="#{sessionAccount.internalAccount.name}" required="true" maxlength="32"
+                            <p:inputText id="inNameId" value="#{sessionAccount.newName}" required="true" maxlength="32"
                                          requiredMessage="#{l10n['insert.name']}"
                                          onkeypress="if(event.keyCode == 13){return false;}"/>
                         </f:facet>
@@ -83,14 +91,9 @@
                 </h:form>
             </p:column>
         </p:row>
-        <p:row rendered="#{sessionAccount.geonameId != null}">
-            <p:column>
-                <h:outputLabel value="#{l10n['location']}"/>
-            </p:column>
-            <p:column>
-                <h:outputText value="#{cacheService.allocateGeoInfoByGeonameId(sessionAccount.geonameId)
-                .buildLocationRaw(sessionAccount.locale, '&lt;br/&gt;', true)}"
-                escape="false"/>
+        <p:row rendered="#{sessionAccount.geoInfo != null}">
+            <p:column colspan="2" style="text-align:center;width:100%;">
+                <h:outputText value="#{sessionAccount.geoInfo.locationByLocaleLanguage(sessionAccount.locale)}"/>
             </p:column>
         </p:row>
         <p:row>
@@ -126,7 +129,7 @@
                             </p:selectManyCheckbox>
                         </f:facet>
                         <f:facet name="input">
-                            <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum" allSuffix="ALL_ENUM_VALUES"/>
+                            <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum"/>
                             <p:selectManyCheckbox value="#{sessionAccount.internalAccount.roles}"
                                                   layout="pageDirection">
                                 <f:selectItems value="#{dependentUtil.mergeAllRoleNamesWithOthers(sessionAccount.internalAccount.roles)}"
@@ -156,8 +159,8 @@
             </p:column>
         </p:row>
         <p:row>
-            <p:column colspan="2" style="text-align:center;">
-                <p:button href="/account?logout" value="#{l10n['logout']}" icon="pi pi-sign-out" />
+            <p:column colspan="2" style="text-align:center;width:100%;">
+                <p:button href="account?logout" value="#{l10n['logout']}" icon="pi pi-sign-out" />
             </p:column>
         </p:row>
     </p:panelGrid>
@@ -165,39 +168,20 @@
 </ui:fragment>
 <ui:fragment rendered="#{!sessionAccount.authed}">
     <h:form id="loginBtnsFormId">
-    <p:panelGrid id="loginBtnsPanelGridId" columns="1" style="margin:0 auto;text-align:center;" styleClass="ui-panelgrid-blank ui-fluid">
-        <p:commandButton value="test acc1 login without google"
-actionListener="#{sessionAccount.attachAccount(
-accountService.findOrCreateAccount('108555958097693113620',sessionAccount.locale.toString(),sessionAccount.geonameId))}"
+    <p:panelGrid id="loginBtnsPanelGridId" columns="1" style="margin:0 auto;text-align:center;" styleClass="ui-panelgrid-blank">
+        <p:commandButton value="login yandex"
+                         actionListener="#{sessionAccount.devLogin('1493475743', 'Body Thanks', 'yandex')}"
                          action="/account.xhtml?faces-redirect=true"
                          process="@this" update="@this msgs"
                          onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()"
-                         style="text-align:left;" icon="pi pi-google"
+                         style="text-align:left;" icon="fab fa-yandex"
                          disabled="#{sessionAccount.internalAccount.isBanned}"
                          rendered="#{applicationHolder.devEnvironment}"/>
-        <p:commandButton value="test acc2 login without google"
-actionListener="#{sessionAccount.attachAccount(
-accountService.findOrCreateAccount('12345',sessionAccount.locale.toString(),sessionAccount.geonameId))}"
-                         action="/account?faces-redirect=true"
-                         process="@this" update="@this msgs"
-                         onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()"
-                         style="text-align:left;" icon="pi pi-google"
-                         disabled="#{sessionAccount.internalAccount.isBanned}"
-                         rendered="#{applicationHolder.devEnvironment}"/>
-        <p:commandButton value="test acc3 login without google"
-actionListener="#{sessionAccount.attachAccount(
-accountService.findOrCreateAccount('55555',sessionAccount.locale.toString(),sessionAccount.geonameId))}"
-                         action="/account.xhtml?faces-redirect=true"
-                         process="@this" update="@this msgs"
-                         onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()"
-                         style="text-align:left;" icon="pi pi-google"
-                         disabled="#{sessionAccount.internalAccount.isBanned}"
-                         rendered="#{applicationHolder.devEnvironment}"/>
-        <h:outputText value="#{l10n['sign.in.with.google']}"/>
-        <p:commandLink actionListener="#{requestLoginGoogle.redirectToOAuth20Provider()}"
+        <h:outputText value="#{l10n['sign.in.with.yandex']}"/>
+        <p:commandLink actionListener="#{requestLogin.redirectToOAuth20Provider()}"
                        process="@this" update="@this msgs"
                        onstart="PF('buiLoginForm').show()" oncomplete="PF('buiLoginForm').hide()">
-            <p:graphicImage value="#{resource['static/images/google80.png']}" title="#{l10n['sign.in.with.google']}" />
+            <p:graphicImage value="#{resource['static/images/yandex80.png']}" title="#{l10n['sign.in.with.yandex']}" />
         </p:commandLink>
     </p:panelGrid>
     <p:blockUI widgetVar="buiLoginForm" block="loginBtnsFormId:loginBtnsPanelGridId"/>
@@ -205,10 +189,8 @@ accountService.findOrCreateAccount('55555',sessionAccount.locale.toString(),sess
 </ui:fragment>
 <p:messages id="msgs" for="msgs,nameFormId:inNameId" showDetail="true" skipDetailIfEqualsSummary="true"/>
 <h:form id="ownerBntsForm" rendered="#{sessionAccount.internalAccount.calcedRoles.owner}">
-<p:panelGrid columns="1">
-    <f:facet name="header">
-        <h:outputText value="test exception msgs buttons"/>
-    </f:facet>
+<p:outputPanel style="text-align:center;">
+<h:outputText value="test exception msgs buttons"/><br/>
 <p:commandButton value="testThrowRuntimeException()"
                  actionListener="#{applicationHolder.testThrowRuntimeException()}"
                  process="@this" update="@this"
@@ -227,7 +209,7 @@ accountService.findOrCreateAccount('55555',sessionAccount.locale.toString(),sess
                  icon="pi pi-bolt"
                  onstart="PF('buiOwnerForm').show()" oncomplete="PF('buiOwnerForm').hide()"
                  disabled="#{sessionAccount.internalAccount.isBanned}"/>
-</p:panelGrid>
+</p:outputPanel>
 <p:outputPanel deferred="true">
 <p:dataTable id="cacheStatsdataListId" value="#{cacheManager.cacheNames}" var="cacheName"
              style="margin-top:10px;">
@@ -254,5 +236,6 @@ accountService.findOrCreateAccount('55555',sessionAccount.locale.toString(),sess
 <p:blockUI block="ownerBntsForm" widgetVar="buiOwnerForm"/>
 </h:form>
 </ui:define>
+<ui:define name="metrics"/>
 </ui:composition>
 </html>

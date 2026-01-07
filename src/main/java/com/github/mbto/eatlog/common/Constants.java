@@ -1,15 +1,13 @@
 package com.github.mbto.eatlog.common;
 
 import com.github.mbto.eatlog.common.model.eatlog.tables.pojos.Setting;
-import org.jooq.Param;
-import org.jooq.impl.DSL;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 public interface Constants {
     DateTimeFormatter YYYYMMDD_HHMMSS_PATTERN = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -20,6 +18,8 @@ public interface Constants {
     DateTimeFormatter DDMMYYYY_PATTERN = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     String BUNDLE_PROPS_SIMPLE_DECLENSION_ENABLED = "language.simple.declension.enabled";
+
+    String ACCOUNT_PAGE = "/account";
 
     String OBSERVE_USER_REQUEST_PARAM = "id";
     String LOGOUT_REQUEST_PARAM = "logout";
@@ -35,12 +35,7 @@ public interface Constants {
     String dialogMsgs = "dialogMsgs";
     String msgs = "msgs";
 
-    String GEO_SCHEMA_NAME = "eatlog_maxmind_city";
-
-    List<Param<String>> GEO_TABLES_NAMES = Stream.of(
-            "city", "country", "ipv4", "subdivision1", "subdivision2")
-            .map(DSL::val)
-            .toList();
+    String RU_LOCALE_LANGUAGE = Locale.of("ru").getLanguage();
 
     Function<Setting, TreeSet<String>> settingRolesGetterFunc = Setting::getRoles;
     BiConsumer<Setting, TreeSet<String>> settingRolesSetterFunc = Setting::setRoles;

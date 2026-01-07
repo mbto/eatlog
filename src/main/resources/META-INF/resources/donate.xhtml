@@ -9,7 +9,7 @@
       xmlns:o="http://omnifaces.org/ui"
       xmlns:of="http://omnifaces.org/functions">
 <f:metadata>
-    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum" allSuffix="ALL_ENUM_VALUES"/>
+    <p:importEnum type="com.github.mbto.eatlog.webapp.enums.SettingEnum" var="SettingEnum"/>
     <o:viewAction actionListener="#{requestParamsHolder.onInvokeApplication(false)}" onPostback="false"/>
     <o:viewAction actionListener="#{requestSetting.fetch(SettingEnum.DONATE_LINKS_JSON.key, true, true, null)}" onPostback="false"/>
 </f:metadata>
@@ -19,7 +19,8 @@
 <p:panel id="donatePanelId" header="#{l10n['donate']}" style="width:355px;margin:0 auto;">
     <ui:fragment rendered="#{not empty requestSetting.selectedChild['htmls']
     or not empty requestSetting.selectedChild['directUrl']}">
-        <h:outputText value="#{requestSetting.selectedChild.get(sessionAccount.locale.language).get('pay')}"/><br/>
+        <h:outputText value="#{requestSetting.selectedChild.get(sessionAccount.locale.language).get('pay')}"
+                      style="display:block;text-align:center;"/>
         <ui:repeat value="#{requestSetting.selectedChild['htmls']}" var="html">
             <br/><h:outputText value="#{html}" escape="false"/>
         </ui:repeat>

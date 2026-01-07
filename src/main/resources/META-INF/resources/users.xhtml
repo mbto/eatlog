@@ -23,7 +23,7 @@
              rowKey="#{child.id}" expandedRow="true"
              paginator="true" rows="15"
              rowsPerPageTemplate="15,30,50"
-             currentPageReportTemplate="#{dependentUtil.msgFromBundle('table.current.page.report.template')}"
+             currentPageReportTemplate="#{l10n['table.current.page.report.template']}"
              paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}">
     <f:facet name="header">
         <h:outputText value="#{l10n['users']}" style="font-weight:normal;"/>
@@ -36,12 +36,10 @@
     </p:ajax>
     <p:columnGroup type="header">
         <p:row>
-            <p:column width="32"/>
-            <p:column width="32" headerText="#{l10n['view']}"/>
-            <p:column width="175" headerText="#{l10n['location']}"/>
             <p:column headerText="#{l10n['name']}"/>
+            <p:column width="175" headerText="#{l10n['geo']}"/>
             <p:column width="175" headerText="#{l10n['dates.registration.and.auth']}"/>
-            <p:column headerText="#{l10n['google.sub']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
+            <p:column headerText="#{l10n['yandex.id']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
             <p:column headerText="#{l10n['language']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
             <p:column width="32" headerText="#{l10n['roles']}"/>
             <p:column headerText="#{l10n['banned']}"/>
@@ -49,35 +47,27 @@
             <p:column width="80" headerText="#{l10n['grade.eatlog']}" rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}"/>
         </p:row>
     </p:columnGroup>
-    <p:column>
+    <p:column styleClass="name-cell">
         <ui:fragment rendered="#{child.isBanned}">
             <p:graphicImage value="#{resource['static/images/banned.jpg']}"
-                            style="display:block;margin:0 auto;"/>
+                            style="border-radius:50%;"/>
         </ui:fragment>
         <ui:fragment rendered="#{!child.isBanned}">
-            <p:graphicImage srcset="#{child.googlePictureUrl}"
-                            style="display:block;margin:0 auto;"
-                            rendered="#{not empty child.googlePictureUrl}"/>
-            <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
-                            style="display:block;margin:0 auto;"
-                            rendered="#{empty child.googlePictureUrl}">
+            <p:graphicImage srcset="#{child.siteAvatarUrl}"
+                            style="border-radius:50%;"
+                            rendered="#{not empty child.siteAvatarUrl}"/>
+            <p:graphicImage value="#{resource['static/images/default.jpg']}"
+                            style="border-radius:50%;"
+                            rendered="#{empty child.siteAvatarUrl}">
             </p:graphicImage>
         </ui:fragment>
-    </p:column>
-    <p:column style="text-align:center;">
-        <p:linkButton outcome="index" target="_blank" icon="pi pi-eye" title="#{l10n['view.user.page']}">
-            <f:param name="id" value="#{child.id}"/>
-        </p:linkButton>
-    </p:column>
-    <p:column>
-        <h:outputText value="#{cacheService.allocateGeoInfoByGeonameId(child.geonameId)
-        .buildLocationRaw(sessionAccount.locale, '&lt;br/&gt;', true)}"
-        escape="false" rendered="#{child.geonameId != null}"/>
-    </p:column>
-    <p:column>
-        <p:link outcome="index" value="#{child.name}" target="_blank" style="white-space:pre-wrap;">
+        <p:link outcome="index" value="#{child.name}" target="_blank">
             <f:param name="id" value="#{child.id}"/>
         </p:link>
+    </p:column>
+    <p:column>
+        <h:outputText value="#{child.ipWrapper.geoInfo.locationByLocaleLanguage(sessionAccount.locale)}"
+                      rendered="#{child.ipWrapper.geoInfo != null}"/>
     </p:column>
     <p:column>
         <h:outputText value="#{child.createdAt}">
@@ -94,7 +84,7 @@
         </h:outputText>
     </p:column>
     <p:column rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}">
-        <h:outputText value="#{child.googleSub}" style="width:75px;display:block;word-wrap:break-word;"/>
+        <h:outputText value="#{child.siteAuthYandexid}" style="width:150px;display:block;word-wrap:break-word;"/>
     </p:column>
     <p:column rendered="#{sessionAccount.internalAccount.calcedRoles.ownerOrAdmin}">
         <h:outputText value="#{child.localeSegments}"/>
@@ -124,8 +114,8 @@
         <p:rating value="#{child.gradeEatlog}" cancel="false" readonly="true"/>
     </p:column>
     <p:rowExpansion rendered="#{child.weightChart != null}">
-        <p:lineChart model="#{child.weightChart}"
-                     style="width:100%;max-height:300px;"/>
+        <p:chart value="#{child.weightChart}"
+                 style="width:100%;height:300px;"/>
     </p:rowExpansion>
 </p:dataTable>
 <p:blockUI
@@ -137,26 +127,26 @@ trigger="childsTable,dialogForm:saveBtn"/>
 
 <ui:define name="dialogs">
 <p:dialog widgetVar="editChildDialogW" header="#{l10n['account.options']}"
-          position="center,center" positionType="fixed"
-          responsive="true" fitViewport="true" resizable="false"
-          closeOnEscape="true"
-          showEffect="fade" modal="true">
+          position="center,top"
+          responsive="true" fitViewport="true" resizable="true" minWidth="660" minHeight="750" width="660"
+          closeOnEscape="true" style="max-width:1000px"
+          showEffect="fade" modal="true" maximizable="true">
 <h:form id="dialogForm">
-    <p:panelGrid styleClass="ui-panelgrid-blank">
+    <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
 		<p:row>
-            <p:column colspan="2">
+            <p:column colspan="2" style="margin:0 auto;">
                 <p:outputPanel id="pictureOutputPanelId">
                 <ui:fragment rendered="#{viewUser.selectedChild.isBanned}">
                     <p:graphicImage value="#{resource['static/images/banned.jpg']}"
-                                    style="display:block;margin:0 auto;"/>
+                                    style="display:block;margin:0 auto;border-radius:50%;"/>
                 </ui:fragment>
                 <ui:fragment rendered="#{!viewUser.selectedChild.isBanned}">
-                    <p:graphicImage srcset="#{viewUser.selectedChild.googlePictureUrl}"
-                                    style="display:block;margin:0 auto;"
-                                    rendered="#{not empty viewUser.selectedChild.googlePictureUrl}"/>
-                    <p:graphicImage value="#{resource['static/images/mouse.jpg']}"
-                                    style="display:block;margin:0 auto;"
-                                    rendered="#{empty viewUser.selectedChild.googlePictureUrl}"/>
+                    <p:graphicImage srcset="#{viewUser.selectedChild.siteAvatarUrl}"
+                                    style="display:block;margin:0 auto;border-radius:50%;"
+                                    rendered="#{not empty viewUser.selectedChild.siteAvatarUrl}"/>
+                    <p:graphicImage value="#{resource['static/images/default.jpg']}"
+                                    style="display:block;margin:0 auto;border-radius:50%;"
+                                    rendered="#{empty viewUser.selectedChild.siteAvatarUrl}"/>
                 </ui:fragment>
                 </p:outputPanel>
             </p:column>
@@ -176,7 +166,7 @@ trigger="childsTable,dialogForm:saveBtn"/>
             <p:column>
                 <p:inputText id="inNameId" value="#{viewUser.selectedChild.name}" required="true"
                              placeholder="#{l10n['name']}"
-                             size="32"
+                             maxlength="32"
                              requiredMessage="#{l10n['insert.name']}"
                 disabled="#{!(sessionAccount.internalAccount.calcedRoles.owner or (!viewUser.selectedChild.calcedRoles.owner
                 and sessionAccount.internalAccount.calcedRoles.admin))}"
@@ -188,7 +178,7 @@ trigger="childsTable,dialogForm:saveBtn"/>
                 <p:outputLabel value="#{l10n['roles']}"/>
             </p:column>
             <p:column>
-                <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum" allSuffix="ALL_ENUM_VALUES"/>
+                <p:importEnum type="com.github.mbto.eatlog.webapp.enums.RoleEnum" var="RoleEnum"/>
                 <p:selectManyCheckbox value="#{viewUser.selectedChild.roles}"
                                       layout="pageDirection"
                                       disabled="#{!sessionAccount.internalAccount.calcedRoles.owner}">
@@ -223,7 +213,7 @@ trigger="childsTable,dialogForm:saveBtn"/>
             <p:column>
                 <p:inputText id="bannedReasonId" value="#{viewUser.selectedChild.bannedReason}"
                              placeholder="#{l10n['insert.reason.and.date']}"
-                             size="32"
+                             maxlength="255"
                 disabled="#{!(!viewUser.selectedChild.id.equals(sessionAccount.internalAccount.id)
                 and (sessionAccount.internalAccount.calcedRoles.owner or (!viewUser.selectedChild.calcedRoles.owner
                 and sessionAccount.internalAccount.calcedRoles.admin)))}"
@@ -232,6 +222,7 @@ trigger="childsTable,dialogForm:saveBtn"/>
         </p:row>
         <p:row>
             <p:column colspan="2">
+            <div class="button-line">
             <p:commandButton id="saveBtn" value="#{l10n['save']}" icon="pi pi-check"
                              process="@this dialogForm"
                              actionListener="#{viewUser.update()}"
@@ -243,6 +234,7 @@ trigger="childsTable,dialogForm:saveBtn"/>
                              type="button"
                              style="margin-left:5px;"
                              onclick="PF('editChildDialogW').hide()"/>
+            </div>
             </p:column>
         </p:row>
     </p:panelGrid>
